@@ -234,6 +234,7 @@ void simulateWalk(int id, int dir) {
   myState.souls.erase( find(myState.souls.begin(), myState.souls.end(), Point(nx, ny)) );
 }
 
+
 /*
  * 移動方向の決め方
  * - 忍者は、自分自身から最も近いニンジャソウルへ向かって移動します。
@@ -291,6 +292,28 @@ string thinkByNinjaId(int id) {
   return ds[dir];
 }
 
+
+vector<vector<string> > createCommands(){
+  vector<vector<string> > result;
+  vector<string> tmp;
+  for (int i = 0; i < 5; i++){
+    for (int j = 0; j < 5; j++){
+      tmp.push_back(ds[i] + ds[j]);
+    }
+  }
+  
+  for (int i = 0; i < tmp.size(); i++){
+    for (int j = 0; j < tmp.size(); j++){
+      vector<string> res;
+      res.push_back(tmp[i]);
+      res.push_back(tmp[j]);
+      result.push_back(res);
+    }
+  }
+  return result;
+}
+
+
 /*
  * このAIについて
  * - 各忍者について、 thinkByNinja(id) を2回行います。
@@ -303,20 +326,18 @@ string thinkByNinjaId(int id) {
 void think() {
   int moveLoop = 2;
 
-  if (myState.skillPoint >= skills[0].cost) {
-    cout << 3 << endl;
-    cout << skills[0].id << endl;
-    moveLoop = 3;
-  } else {
-    cout << 2 << endl;
-  }
+  // if (myState.skillPoint >= skills[0].cost) {
+  //   cout << 3 << endl;
+  //   cout << skills[0].id << endl;
+  //   moveLoop = 3;
+  // } else {
+  //   cout << 2 << endl;
+  // }
+  vector<vector<string> > commands = createCommands();
 
-  for (int i = 0; i < myState.ninjas.size(); i++) {
-    for (int j = 0; j < moveLoop; j++) {
-      cout << thinkByNinjaId(myState.ninjas[i].id);
-    }
-    cout << endl;
-  }
+
+
+  return ;
 }
 
 bool input() {
