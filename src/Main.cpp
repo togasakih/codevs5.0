@@ -47,6 +47,7 @@ public:
   bool isWall() const { return kind == CELL_WALL; }
   bool isObject() const { return kind == CELL_OBJECT; }
   bool isEmpty() const { return kind == CELL_EMPTY; }
+
 };
 
 class Character : public Point {
@@ -71,7 +72,11 @@ public:
   vector<Character> dogs;
   vector<Point> souls;
   vector<int> skillCount;
-
+  //togasaki
+  double searchValue;
+  int getSoul;
+  bool fail;
+  int commandId;
   State() {
     skillPoint = H = W = -1;
     field.clear();
@@ -79,8 +84,15 @@ public:
     dogs.clear();
     souls.clear();
     skillCount.clear();
+    //togasaki
+    searchValue = 0;
+    getSoul = 0;
+    fail = false;
+    commandId = -1;
   }
-
+  bool operator < (const State& right) const {
+    return getSoul < right.getSoul;
+  }
   static State input(int numOfSkills) {
     State st;
 
@@ -298,7 +310,8 @@ vector<vector<string> > createCommands(){
   vector<string> tmp;
   for (int i = 0; i < 5; i++){
     for (int j = 0; j < 5; j++){
-      tmp.push_back(ds[i] + ds[j]);
+      string com = to_string(i) + to_string(j);
+      tmp.push_back(com);
     }
   }
   
@@ -310,9 +323,136 @@ vector<vector<string> > createCommands(){
       result.push_back(res);
     }
   }
+  
   return result;
 }
+void simulateNextDog(State &nowState){
+  
+  vector<vector<int> > dist(nowState.H, vector<int>(nowState.W, INF));
+  for (int id = 0; id < 2; id++){
+    int sx = nowState.ninjas[id].x;
+    int sy = nowState.ninjas[id].y;
+    queue<Search> open;
+    vector< vector<bool> > closed(nowState.H, vector<bool>(nowState.W, false));
+    
+    closed[sy][sx] = true;
+    open.push(Search(sx, sy, 0));
+    while (!open.empty()) {
+      Search sc = open.front(); open.pop();
+      dist[sc.y][sc.x] = sc.dist;
+      
+      for (int dir = 0; dir < 4; dir++) {
+	int nx = sc.x + dx[dir];
+	int ny = sc.y + dy[dir];
 
+	if (!nowState.field[ny][nx].isEmpty()) continue;
+	if (closed[ny][nx]) continue;
+	
+	closed[ny][nx] = true;
+	if (dist[ny][nx] > sc.dist + 1){
+	  open.push(Search(nx, ny, sc.dist + 1));
+	}
+      }
+    }
+  }
+  vector<pair<int, int> > orderDog;
+  for (int i = 0; i < nowState.dogs.size(); i++){
+    int px = nowState.dogs[i].x;
+    int py = nowState.dogs[i].y;
+    orderDog.push_back(make_pair(dist[py][px], i));
+  }
+  sort(orderDog.begin(), orderDog.end());
+
+  
+  for (int i = 0; i < orderDog.size(); i++){
+    int id = orderDog[i].second;
+    int px = nowState.dogs[id].x;
+    int py = nowState.dogs[id].y;
+    int nowDist = dist[py][px];
+    for (int k = 0; k < 4; k++){
+      int nx = px + dx[k];
+      int ny = py + dy[k];
+      int nextDist = dist[ny][nx];
+
+      if (nowState.field[ny][nx].isEmpty() && !nowState.field[ny][nx].containsDog && (nowDist - nextDist) == 1){
+	nowState.field[py][px].containsDog = false;
+	nowState.field[ny][nx].containsDog = true;	
+	nowState.dogs[id].x = nx;
+	nowState.dogs[id].y = ny;
+      }
+    }
+  }
+  
+  return ;
+}
+
+State genNextState(const State &nowState, const vector<string> &command){
+
+  State nextState = nowState;
+  bool flagFail = false;
+
+  for (int id = 0; id < 2; id++){
+    string com = command[id];
+
+    for (int i = 0; i < com.size(); i++){
+      int px = nextState.ninjas[id].x;
+      int py = nextState.ninjas[id].y;
+      
+      int nx = px + dx[com[i] - '0'];
+      int ny = py + dy[com[i] - '0'];
+      //      cerr << px << " " << py << " " << nx << " " << ny << endl;
+      //cerr << nextState.field.size() << " " << nextState.field[0].size() << endl;
+      //cout << nextState.field[ny][nx].kind << " " << nextState.field[ny][nx].isWall() << endl;
+      if (nextState.field[ny][nx].isWall()){
+	flagFail = true;
+	break;
+      }
+      //      cerr << px << " " << py << " " << nx << " " << ny << endl;      
+      if (nextState.field[ny][nx].isObject()){//rock
+	//next empty
+	int nnx = nx + dx[com[i] - '0'];
+	int nny = ny + dy[com[i] - '0'];
+	if (!(nnx >= 0 && nnx < nextState.W && nny >= 0 && nny < nextState.H) || !nextState.field[nny][nnx].isEmpty() || nextState.field[nny][nnx].containsDog || nextState.field[nny][nnx].containsNinja){
+	  flagFail = true;
+	  break;
+	}
+	swap(nextState.field[ny][nx].kind, nextState.field[nny][nnx].kind);
+      }
+
+      if (nextState.field[ny][nx].containsSoul){//find soul
+	nextState.skillPoint += 2;
+	nextState.getSoul += 1;
+	nextState.field[ny][nx].containsSoul = false;
+	//cerr << "hogeee"  << endl;
+	nextState.souls.erase( find(nextState.souls.begin(), nextState.souls.end(), Point(nx, ny)) );
+      }    
+      //next
+      nextState.field[py][px].containsNinja = false;
+      nextState.field[ny][nx].containsNinja = true;
+      nextState.ninjas[id].x = nx;
+      nextState.ninjas[id].y = ny;
+    }
+    //next killed by dog
+    for (int i = 0; i < 5; i++){
+      int nx = nextState.ninjas[id].x + dx[i];
+      int ny = nextState.ninjas[id].y + dy[i];
+      if (nextState.field[ny][nx].containsDog){
+	flagFail = true;
+	break;
+      }
+    }
+    if (flagFail){
+      break;
+    }
+  }
+  
+  if (flagFail){
+    nextState.fail = true;
+  }
+
+
+  return nextState;
+}
 
 /*
  * このAIについて
@@ -323,20 +463,42 @@ vector<vector<string> > createCommands(){
  * -- 「超高速」のみを使用します。
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
-void think() {
-  int moveLoop = 2;
-
-  // if (myState.skillPoint >= skills[0].cost) {
-  //   cout << 3 << endl;
-  //   cout << skills[0].id << endl;
-  //   moveLoop = 3;
-  // } else {
-  //   cout << 2 << endl;
-  // }
+void think(int depthLimit) {
+  vector<State> currentState[depthLimit + 1];
+  currentState[0].push_back(myState);
   vector<vector<string> > commands = createCommands();
-
-
-
+  for (int depth = 0; depth < depthLimit; depth++){
+    for (int i = 0; i < currentState[depth].size(); i++){
+      State nowState = currentState[depth][i];
+      for (int j = 0; j < commands.size(); j++){
+	State nextState = genNextState(nowState, commands[j]);
+	if (nextState.fail)continue;
+	if (depth == 0){
+	  nextState.commandId = j;
+	}
+	simulateNextDog(nextState);
+	currentState[depth + 1].push_back(nextState);
+      }
+    }
+  }
+  for (int depth = depthLimit; depth >= 0; depth--){
+    sort(currentState[depth].rbegin(), currentState[depth].rend());
+    if (currentState[depth].empty())continue;
+    //    cerr << currentState[depth][0].getSoul << endl;
+    cout << 2 << endl;
+    int comId = currentState[depth][0].commandId;
+    for (int i = 0; i < commands[comId].size(); i++){
+      for (int j = 0; j < commands[comId][i].size(); j++){
+	cout << ds[commands[comId][i][j] - '0'];
+      }
+      cout << endl;
+    }
+    return ;
+  }
+  cout << 2 << endl;
+  cout << endl;
+  cout << endl;
+  cout << endl;
   return ;
 }
 
@@ -363,7 +525,7 @@ int main() {
   cout.flush();
 
   while (input()) {
-    think();
+    think(2);
     cout.flush();
   }
 
