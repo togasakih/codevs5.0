@@ -463,11 +463,15 @@ State genNextState(const State &nowState, const vector<string> &command){
  * -- 「超高速」のみを使用します。
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
-void think(int depthLimit) {
+void think(int depthLimit, int beamWidth=625) {
   vector<State> currentState[depthLimit + 1];
   currentState[0].push_back(myState);
   vector<vector<string> > commands = createCommands();
   for (int depth = 0; depth < depthLimit; depth++){
+    sort(currentState[depth].rbegin(), currentState[depth].rend());
+    if (currentState[depth].size() > beamWidth){
+      currentState[depth].erase(currentState[depth].begin() + beamWidth, currentState[depth].end());
+    }
     for (int i = 0; i < currentState[depth].size(); i++){
       State nowState = currentState[depth][i];
       for (int j = 0; j < commands.size(); j++){
@@ -481,7 +485,7 @@ void think(int depthLimit) {
       }
     }
   }
-  for (int depth = depthLimit; depth >= 0; depth--){
+  for (int depth = depthLimit; depth >= 1; depth--){
     sort(currentState[depth].rbegin(), currentState[depth].rend());
     if (currentState[depth].empty())continue;
     //    cerr << currentState[depth][0].getSoul << endl;
