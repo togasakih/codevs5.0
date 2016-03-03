@@ -77,6 +77,7 @@ public:
   int getSoul;
   bool fail;
   int commandId;
+  vector<int> minDistSoulById;
   State() {
     skillPoint = H = W = -1;
     field.clear();
@@ -89,10 +90,9 @@ public:
     getSoul = 0;
     fail = false;
     commandId = -1;
+    minDistSoulById.clear();
   }
-  bool operator < (const State& right) const {
-    return getSoul < right.getSoul;
-  }
+
   static State input(int numOfSkills) {
     State st;
 
@@ -114,9 +114,11 @@ public:
     int numOfNinjas;
     cin >> numOfNinjas;
     st.ninjas.clear();
+    st.minDistSoulById.clear();    
     for (int i = 0; i < numOfNinjas; i++) {
       Character ninja = Character::input();
       st.ninjas.push_back(ninja);
+      st.minDistSoulById.push_back(INF);
       st.field[ninja.y][ninja.x].containsNinja = true;
     }
 
@@ -148,6 +150,13 @@ public:
 
     return st;
   }
+  
+  bool operator < (const State &right) const {
+    if (getSoul == right.getSoul){
+      return minDistSoulById[0] + minDistSoulById[1] > right.minDistSoulById[0] + right.minDistSoulById[1];
+    }
+    return getSoul < right.getSoul;
+  }
 };
 
 class Search : public Point {
@@ -171,7 +180,8 @@ State rivalState;
 int dx[] =    {  0,   1,   0,  -1,   0};
 int dy[] =    { -1,   0,   1,   0,   0};
 string ds[] = {"U", "R", "D", "L",  ""};
-
+int dogDx[] =    {  0,   -1,   1,  0,   0};//U L R D
+int dogDy[] =    { -1,   0,   0,   1,   0};
 /**
  * (sx, sy) を起点として、幅優先探索で (最も近い忍犬までの距離, 最も近いアイテムまでの距離) を計算して MinDist で返します。
  * 忍犬やアイテムがフィールド上に存在しない場合は、対応する値を INF として返します。
@@ -308,8 +318,8 @@ string thinkByNinjaId(int id) {
 vector<vector<string> > createCommands(){
   vector<vector<string> > result;
   vector<string> tmp;
-  for (int i = 0; i < 5; i++){
-    for (int j = 0; j < 5; j++){
+  for (int i = 0; i < 4; i++){
+    for (int j = 0; j < 4; j++){
       string com = to_string(i) + to_string(j);
       tmp.push_back(com);
     }
@@ -362,7 +372,6 @@ void simulateNextDog(State &nowState){
     orderDog.push_back(make_pair(dist[py][px], i));
   }
   sort(orderDog.begin(), orderDog.end());
-
   
   for (int i = 0; i < orderDog.size(); i++){
     int id = orderDog[i].second;
@@ -370,18 +379,48 @@ void simulateNextDog(State &nowState){
     int py = nowState.dogs[id].y;
     int nowDist = dist[py][px];
     for (int k = 0; k < 4; k++){
-      int nx = px + dx[k];
-      int ny = py + dy[k];
+      int nx = px + dogDx[k];
+      int ny = py + dogDy[k];
       int nextDist = dist[ny][nx];
-
       if (nowState.field[ny][nx].isEmpty() && !nowState.field[ny][nx].containsDog && (nowDist - nextDist) == 1){
 	nowState.field[py][px].containsDog = false;
 	nowState.field[ny][nx].containsDog = true;	
 	nowState.dogs[id].x = nx;
 	nowState.dogs[id].y = ny;
+	break;
       }
     }
   }
+  // for (int i = 0; i < nowState.souls.size(); i++){
+  //   int x = nowState.souls[i].x;
+  //   int y = nowState.souls[i].y;
+  //   nowState.field[y][x].containsSoul = true;
+  // }
+  // //calculate soul
+  // for (int id = 0; id < 2; id++){
+  //   int sx = nowState.ninjas[id].x;
+  //   int sy = nowState.ninjas[id].y;
+  //   queue<Search> open;
+  //   vector< vector<bool> > closed(nowState.H, vector<bool>(nowState.W, false));
+    
+  //   closed[sy][sx] = true;
+  //   open.push(Search(sx, sy, 0));
+  //   while (!open.empty()) {
+  //     Search sc = open.front(); open.pop();
+  //     if (nowState.field[sy][sx].containsSoul){
+  // 	nowState.minDistSoulById[id] = sc.dist;
+  //     }
+  //     for (int dir = 0; dir < 4; dir++) {
+  // 	int nx = sc.x + dx[dir];
+  // 	int ny = sc.y + dy[dir];
+
+  // 	if (!nowState.field[ny][nx].isEmpty()) continue;
+  // 	if (closed[ny][nx]) continue;
+  // 	closed[ny][nx] = true;
+  // 	open.push(Search(nx, ny, sc.dist + 1));
+  //     }
+  //   }
+  // }
   
   return ;
 }
@@ -390,7 +429,7 @@ State genNextState(const State &nowState, const vector<string> &command){
 
   State nextState = nowState;
   bool flagFail = false;
-
+  
   for (int id = 0; id < 2; id++){
     string com = command[id];
 
@@ -423,7 +462,6 @@ State genNextState(const State &nowState, const vector<string> &command){
 	nextState.skillPoint += 2;
 	nextState.getSoul += 1;
 	nextState.field[ny][nx].containsSoul = false;
-	//cerr << "hogeee"  << endl;
 	nextState.souls.erase( find(nextState.souls.begin(), nextState.souls.end(), Point(nx, ny)) );
       }    
       //next
@@ -432,6 +470,7 @@ State genNextState(const State &nowState, const vector<string> &command){
       nextState.ninjas[id].x = nx;
       nextState.ninjas[id].y = ny;
     }
+    
     //next killed by dog
     for (int i = 0; i < 5; i++){
       int nx = nextState.ninjas[id].x + dx[i];
@@ -463,7 +502,8 @@ State genNextState(const State &nowState, const vector<string> &command){
  * -- 「超高速」のみを使用します。
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
-void think(int depthLimit, int beamWidth=625) {
+void think(int depthLimit, int beamWidth=400) {
+  
   vector<State> currentState[depthLimit + 1];
   currentState[0].push_back(myState);
   vector<vector<string> > commands = createCommands();
@@ -488,7 +528,7 @@ void think(int depthLimit, int beamWidth=625) {
   for (int depth = depthLimit; depth >= 1; depth--){
     sort(currentState[depth].rbegin(), currentState[depth].rend());
     if (currentState[depth].empty())continue;
-    //    cerr << currentState[depth][0].getSoul << endl;
+    //cerr << currentState[depth][0].getSoul << " " << depth << " " << currentState[depth][0].minDistSoulById[0] << " " << currentState[depth][0].minDistSoulById[1] << endl;
     cout << 2 << endl;
     int comId = currentState[depth][0].commandId;
     for (int i = 0; i < commands[comId].size(); i++){
@@ -529,7 +569,7 @@ int main() {
   cout.flush();
 
   while (input()) {
-    think(2);
+    think(4);
     cout.flush();
   }
 
