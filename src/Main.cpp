@@ -3,6 +3,7 @@
 #include <queue>
 #include <algorithm>
 #include <climits>
+#include <set>
 using namespace std;
 
 const int INF = 876765346;
@@ -43,11 +44,14 @@ public:
   Cell(int x, int y, char kind): Point(x, y), kind(kind) {
     containsNinja = containsSoul = containsDog = false;
   }
-
+  
   bool isWall() const { return kind == CELL_WALL; }
   bool isObject() const { return kind == CELL_OBJECT; }
   bool isEmpty() const { return kind == CELL_EMPTY; }
-
+  //togasaki
+  bool isNoCharacter() const {
+    return !containsSoul & !containsNinja & !containsDog;
+  }
 };
 
 class Character : public Point {
@@ -78,6 +82,8 @@ public:
   bool fail;
   int commandId;
   vector<int> minDistSoulById;
+  int rivalSkillPoint;
+
   State() {
     skillPoint = H = W = -1;
     field.clear();
@@ -91,6 +97,7 @@ public:
     fail = false;
     commandId = -1;
     minDistSoulById.clear();
+    rivalSkillPoint = 0;
   }
 
   static State input(int numOfSkills) {
@@ -492,6 +499,26 @@ State genNextState(const State &nowState, const vector<string> &command){
 
   return nextState;
 }
+const int fallDx[] = {0, 1, 0, -1, 0, 2, 0, -2};
+const int fallDy[] = {-1, 0, 1, 0, -2, 0, 2, 0};
+bool vaildFallRockByRival(int id, int fallDir, const State &nowState){
+  if (nowState.rivalSkillPoint < nowState.skillCount[2]){//unable fall rock
+    return false;
+  }
+  int px = nowState.ninjas[id].x;
+  int py = nowState.ninjas[id].y;
+  int fallx = px + fallDx[fallDir];
+  int fally = py + fallDy[fallDir];
+  if (fallx <= 0 || fallx >= nowState.W - 1 || fally <= 0 || fally >= nowState.H - 1){//
+    return false;
+  }
+  //  cerr << fallx << " " << fally << " " << nowState.field[fally][fallx].isNoCharacter() << endl;
+  if (nowState.field[fally][fallx].isEmpty() && nowState.field[fally][fallx].isNoCharacter()){
+    return true;
+  }
+  return false;
+}
+
 
 /*
  * このAIについて
@@ -502,11 +529,39 @@ State genNextState(const State &nowState, const vector<string> &command){
  * -- 「超高速」のみを使用します。
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
-void think(int depthLimit, int beamWidth=400) {
+void think(int depthLimit, int beamWidth=300) {
   
   vector<State> currentState[depthLimit + 1];
   currentState[0].push_back(myState);
+  for (int id = 0; id < 2; id++){
+    int px = myState.ninjas[id].x;
+    int py = myState.ninjas[id].y;
+    bool surroundDog = false;
+    for (int dir = 0; dir < 4; dir++){
+      int nx = px + dx[dir];
+      int ny = py + dy[dir];
+      if (myState.field[ny][nx].containsDog){
+	surroundDog = true;
+	break;
+      }
+    }
+    if (surroundDog){
+      for (int dir = 0; dir < 7; dir++){
+	int nx = px + fallDx[dir];
+	int ny = py + fallDy[dir];
+	if(vaildFallRockByRival(id, dir, myState)){
+	  State nextState = myState;
+	  nextState.field[ny][nx].kind = 'O';
+	  nextState.rivalSkillPoint -= nextState.skillCount[2];
+	  currentState[0].push_back(nextState);
+	}
+      }
+    }
+  }
+  
   vector<vector<string> > commands = createCommands();
+  set<int> tabooCommands;
+  //  cerr << currentState[0].size() << endl;
   for (int depth = 0; depth < depthLimit; depth++){
     sort(currentState[depth].rbegin(), currentState[depth].rend());
     if (currentState[depth].size() > beamWidth){
@@ -514,9 +569,22 @@ void think(int depthLimit, int beamWidth=400) {
     }
     for (int i = 0; i < currentState[depth].size(); i++){
       State nowState = currentState[depth][i];
+      if (tabooCommands.count(nowState.commandId) > 0){
+	// cout << commands[nowState.commandId][0] << endl;
+	// cout << commands[nowState.commandId][1] << endl;
+	//	cout << nowState.commandId << endl;
+	continue;
+      }
       for (int j = 0; j < commands.size(); j++){
 	State nextState = genNextState(nowState, commands[j]);
-	if (nextState.fail)continue;
+	if (nextState.fail){
+	  
+	  if (depth == 0){//taboo command;
+	    //	    cout << "taboooo = "<< nextState.field[10][1].kind << endl;
+	    tabooCommands.insert(j);
+	  }
+	  continue;
+	}
 	if (depth == 0){
 	  nextState.commandId = j;
 	}
@@ -528,9 +596,10 @@ void think(int depthLimit, int beamWidth=400) {
   for (int depth = depthLimit; depth >= 1; depth--){
     sort(currentState[depth].rbegin(), currentState[depth].rend());
     if (currentState[depth].empty())continue;
+    //    cerr << "depth = " << depth << endl;
     //cerr << currentState[depth][0].getSoul << " " << depth << " " << currentState[depth][0].minDistSoulById[0] << " " << currentState[depth][0].minDistSoulById[1] << endl;
-    cout << 2 << endl;
     int comId = currentState[depth][0].commandId;
+    cout << 2 << endl;
     for (int i = 0; i < commands[comId].size(); i++){
       for (int j = 0; j < commands[comId][i].size(); j++){
 	cout << ds[commands[comId][i][j] - '0'];
@@ -559,7 +628,7 @@ bool input() {
 
   myState = State::input(skills.size());
   rivalState = State::input(skills.size());
-
+  myState.rivalSkillPoint = rivalState.skillPoint;
   return true;
 }
 
@@ -569,7 +638,7 @@ int main() {
   cout.flush();
 
   while (input()) {
-    think(4);
+    think(3);
     cout.flush();
   }
 
