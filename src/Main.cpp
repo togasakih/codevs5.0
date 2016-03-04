@@ -654,7 +654,7 @@ int main() {
   cout.flush();
 
   while (input()) {
-    think(4);
+    think(3);
     cout.flush();
   }
 
