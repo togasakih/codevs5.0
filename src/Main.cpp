@@ -478,8 +478,8 @@ void simulateNextShadowDog(int y, int x,State &nowState){
 
   vector<vector<int> > dist(nowState.H, vector<int>(nowState.W, INF));
 
-    int sx = y;
-    int sy = x;
+    int sx = x;
+    int sy = y;
     queue<Search> open;
     vector< vector<bool> > closed(nowState.H, vector<bool>(nowState.W, false));
     closed[sy][sx] = true;
