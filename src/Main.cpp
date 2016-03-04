@@ -343,6 +343,51 @@ vector<vector<string> > createCommands(){
   
   return result;
 }
+
+void calculateMinDistToSoul(State &nowState){
+
+
+  for (int id = 0; id < 2; id++){
+    int sx = nowState.ninjas[id].x;
+    int sy = nowState.ninjas[id].y;
+    queue<Search> open;
+    vector< vector<bool> > closed(nowState.H, vector<bool>(nowState.W, false));
+    
+    vector< vector<Cell> > field = nowState.field;
+    closed[sy][sx] = true;
+    open.push(Search(sx, sy, 0));
+    while (!open.empty()){
+      Search sc = open.front();
+      open.pop();
+
+      if (!field[sy][sx].isEmpty())continue;
+      for (int dir = 0; dir < 4; dir++){
+	int nx = sc.x + dx[dir];
+	int ny = sc.y + dy[dir];
+	if (field[ny][nx].isWall())continue;
+	if (closed[ny][nx])continue;
+	
+	if (field[ny][nx].isObject()){
+	  int nnx = nx + dx[dir];
+	  int nny = ny + dy[dir];
+	  if (!field[nny][nnx].isEmpty())continue;
+	  swap(field[nny][nnx].kind, field[ny][nx].kind);
+	}
+	if (field[ny][nx].containsSoul){
+	  nowState.minDistSoulById[id] = sc.dist + 1;
+	  goto NextId;
+	}
+	closed[ny][nx] = true;
+	open.push(Search(nx, ny, sc.dist + 1));
+      }
+    }
+  NextId:;
+  }
+  return ;
+  
+}
+
+
 void simulateNextDog(State &nowState){
   
   vector<vector<int> > dist(nowState.H, vector<int>(nowState.W, INF));
@@ -398,36 +443,6 @@ void simulateNextDog(State &nowState){
       }
     }
   }
-  // for (int i = 0; i < nowState.souls.size(); i++){
-  //   int x = nowState.souls[i].x;
-  //   int y = nowState.souls[i].y;
-  //   nowState.field[y][x].containsSoul = true;
-  // }
-  // //calculate soul
-  // for (int id = 0; id < 2; id++){
-  //   int sx = nowState.ninjas[id].x;
-  //   int sy = nowState.ninjas[id].y;
-  //   queue<Search> open;
-  //   vector< vector<bool> > closed(nowState.H, vector<bool>(nowState.W, false));
-    
-  //   closed[sy][sx] = true;
-  //   open.push(Search(sx, sy, 0));
-  //   while (!open.empty()) {
-  //     Search sc = open.front(); open.pop();
-  //     if (nowState.field[sy][sx].containsSoul){
-  // 	nowState.minDistSoulById[id] = sc.dist;
-  //     }
-  //     for (int dir = 0; dir < 4; dir++) {
-  // 	int nx = sc.x + dx[dir];
-  // 	int ny = sc.y + dy[dir];
-
-  // 	if (!nowState.field[ny][nx].isEmpty()) continue;
-  // 	if (closed[ny][nx]) continue;
-  // 	closed[ny][nx] = true;
-  // 	open.push(Search(nx, ny, sc.dist + 1));
-  //     }
-  //   }
-  // }
   
   return ;
 }
@@ -589,6 +604,7 @@ void think(int depthLimit, int beamWidth=300) {
 	  nextState.commandId = j;
 	}
 	simulateNextDog(nextState);
+	calculateMinDistToSoul(nextState);
 	currentState[depth + 1].push_back(nextState);
       }
     }
@@ -634,11 +650,11 @@ bool input() {
 
 int main() {
   // AIの名前を出力
-  cout << "SampleAI.cpp" << endl;
+  cout << "TogaTogAI" << endl;
   cout.flush();
 
   while (input()) {
-    think(3);
+    think(4);
     cout.flush();
   }
 
