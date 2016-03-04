@@ -93,7 +93,7 @@ public:
   int skillId;
   int skillDepth;
   Point targetPoint;
-
+  int nextRivalAttack;
   State() {
     skillPoint = H = W = -1;
     field.clear();
@@ -111,6 +111,7 @@ public:
     skillId = -1;
     skillDepth = -1;
     targetPoint = Point(-1,-1);
+    nextRivalAttack = INF;
   }
 
   static State input(int numOfSkills) {
@@ -172,6 +173,12 @@ public:
   }
   
   bool operator < (const State &right) const {
+    if (nextRivalAttack > right.nextRivalAttack){
+      return true;
+    }
+    if (nextRivalAttack < right.nextRivalAttack){
+      return false;
+    }
     if (getSoul == right.getSoul){
       if(minDistSoulById[0] + minDistSoulById[1] == right.minDistSoulById[0] + right.minDistSoulById[1]){
       	return skillPoint < right.skillPoint;
@@ -344,8 +351,8 @@ string thinkByNinjaId(int id) {
 vector<vector<string> > createCommands(){
   vector<vector<string> > result;
   vector<string> tmp;
-  for (int i = 0; i < 5; i++){
-    for (int j = 0; j < 5; j++){
+  for (int i = 0; i < 4; i++){
+    for (int j = 0; j < 4; j++){
       string com = to_string(i) + to_string(j);
       tmp.push_back(com);
     }
@@ -708,7 +715,7 @@ bool vaildLightningByMe(int id, int fallDir, const State &nowState){
  * -- 「超高速」のみを使用します。
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
-void think(int depthLimit, int beamWidth=100) {
+void think(int depthLimit, int beamWidth=50) {
   
   vector<State> currentState[depthLimit + 1];
   currentState[0].push_back(myState);
@@ -738,24 +745,21 @@ void think(int depthLimit, int beamWidth=100) {
     }
   }
 
-  set<int> tabooCommands;
+  //  set<int> tabooCommands;
   //  cerr << currentState[0].size() << endl;
   for (int depth = 0; depth < depthLimit; depth++){
-    sort(currentState[depth].rbegin(), currentState[depth].rend());
+    
     if (currentState[depth].size() > beamWidth){
+      sort(currentState[depth].rbegin(), currentState[depth].rend());
       currentState[depth].erase(currentState[depth].begin() + beamWidth, currentState[depth].end());
     }
     for (int i = 0; i < currentState[depth].size(); i++){
       State nowState = currentState[depth][i];
-      if (tabooCommands.count(nowState.commandId) > 0){
-	continue;
-      }
+      int deathNodeCnt = 0;
       for (int j = 0; j < commands.size(); j++){
 	State nextState = genNextState(nowState, commands[j]);
 	if (nextState.fail){
-	  if (depth == 0){//taboo command;
-	    tabooCommands.insert(j);
-	  }
+	  deathNodeCnt++;
 	  continue;
 	}
 	if (depth == 0){
@@ -765,16 +769,15 @@ void think(int depthLimit, int beamWidth=100) {
 	calculateMinDistToSoul(nextState);
 	currentState[depth + 1].push_back(nextState);
       }
-    }
       
-    //use skills
-    if (true || currentState[depth + 1].size() <= 50){
-      for (int i = 0; i < currentState[depth].size() ; i++){
-	State nowState = currentState[depth][i];
+      if (commands.size() - deathNodeCnt == 0){//determine death
+	//use skill
 	if (nowState.skillId != -1)continue;
-	if (tabooCommands.count(nowState.commandId) > 0){
-	  continue;
-	}
+	if (nowState.skillPoint < skills[3].cost)continue;
+	
+	// if (tabooCommands.count(nowState.commandId) > 0){
+	//   continue;
+	// }
 	for (int id = 0; id < 2; id++){
 	  int px = nowState.ninjas[id].x;
 	  int py = nowState.ninjas[id].y;
@@ -788,14 +791,17 @@ void think(int depthLimit, int beamWidth=100) {
 	      lightState.skillPoint -= skills[3].cost;
 	      lightState.skillId = 3;
 	      lightState.skillDepth = depth;
+
+	      lightState.nextRivalAttack = commands.size() - deathNodeCnt;
+
 	      lightState.targetPoint = Point(nx, ny);
 	      //next 
 	      for (int j = 0; j < commands.size(); j++){
 		State nextState = genNextState(lightState, commands[j]);
 		if (nextState.fail){
-		  if (depth == 0){//taboo command;
-		    tabooCommands.insert(j);
-		  }
+		  // if (depth == 0){//taboo command;
+		  //   tabooCommands.insert(j);
+		  // }
 		  continue;
 		}
 		if (depth == 0){
@@ -810,6 +816,9 @@ void think(int depthLimit, int beamWidth=100) {
 	}
       }
     }
+      
+
+    //    beamWidth += 50;
   }
   
   for (int depth = depthLimit; depth >= 1; depth--){
@@ -876,7 +885,7 @@ int main() {
   cout.flush();
   commands = createCommands();
   while (input()) {
-    think(3);
+    think(5);
     cout.flush();
   }
 
