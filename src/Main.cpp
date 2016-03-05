@@ -181,12 +181,12 @@ public:
   }
 
   bool operator < (const State &right) const {
-    if (nextRivalAttack > right.nextRivalAttack){
-      return true;
-    }
-    if (nextRivalAttack < right.nextRivalAttack){
-      return false;
-    }
+    // if (nextRivalAttack > right.nextRivalAttack){
+    //   return true;
+    // }
+    // if (nextRivalAttack < right.nextRivalAttack){
+    //   return false;
+    // }
     if (getSoul == right.getSoul){
       if(minDistSoulById[0] + minDistSoulById[1] == right.minDistSoulById[0] + right.minDistSoulById[1]){
       	return skillPoint < right.skillPoint;
@@ -811,7 +811,7 @@ void think(int depthLimit, int beamWidth=50) {
 	  nextState.rivalSkillPoint -= skills[2].cost;
 	  nextState.skillRivalId = 2;
 	  nextState.skillRivalDepth = 0;
-	  nextState.targetPoint = Point(nx, ny);
+	  nextState.targetRivalPoint = Point(nx, ny);
 	  currentState[0].push_back(nextState);
 	}
       }
@@ -904,7 +904,7 @@ void think(int depthLimit, int beamWidth=50) {
 	    for (int y = 1; y < nowSkillState.H - 1; y++){//upper left
 	      for (int x = 1; x < nowSkillState.W - 1; x++){
 		if (nowSkillState.field[y][x].isEmpty()){//place shadow (x,y)
-
+		  int cnt = 0;
 		  for (int j = 0; j < commands.size(); j++){
 		    State nextState = genNextState(nowSkillState, commands[j], true);
 		    if (nextState.fail){
@@ -935,8 +935,11 @@ void think(int depthLimit, int beamWidth=50) {
 		    if (death)continue;
 		    calculateMinDistToSoul(nextState);
 		    currentState[depth + 1].push_back(nextState);
+		    cnt++;
 		  }
-		  goto NextSegment1;
+		  if (cnt != 0){
+		    goto NextSegment1;
+		  }
 		}
 	      }
 	    }
@@ -951,7 +954,7 @@ void think(int depthLimit, int beamWidth=50) {
 	    for (int y = 1; y < nowSkillState.H - 1; y++){//upper right
 	      for (int x = nowSkillState.W - 2; x >= 1; x--){
 		if (nowSkillState.field[y][x].isEmpty()){//place shadow (x,y)
-
+		  int cnt = 0;
 		  for (int j = 0; j < commands.size(); j++){
 		    State nextState = genNextState(nowSkillState, commands[j], true);
 		    if (nextState.fail){
@@ -982,8 +985,11 @@ void think(int depthLimit, int beamWidth=50) {
 		    if (death)continue;
 		    calculateMinDistToSoul(nextState);
 		    currentState[depth + 1].push_back(nextState);
+		    cnt++;
 		  }
-		  goto NextSegment2;
+		  if (cnt != 0){
+		    goto NextSegment2;
+		  }
 		}
 	      }
 	    }
@@ -998,7 +1004,7 @@ void think(int depthLimit, int beamWidth=50) {
 	    for (int y = nowSkillState.H - 2; y >= 1; y--){//lower left
 	      for (int x = 1; x < nowSkillState.W - 1; x++){
 		if (nowSkillState.field[y][x].isEmpty()){//place shadow (x,y)
-
+		  int cnt = 0;
 		  for (int j = 0; j < commands.size(); j++){
 		    State nextState = genNextState(nowSkillState, commands[j], true);
 		    if (nextState.fail){
@@ -1029,8 +1035,11 @@ void think(int depthLimit, int beamWidth=50) {
 		    if (death)continue;
 		    calculateMinDistToSoul(nextState);
 		    currentState[depth + 1].push_back(nextState);
+		    cnt++;
 		  }
-		  goto NextSegment3;
+		  if (cnt != 0){
+		    goto NextSegment3;
+		  }
 		}
 	      }
 	    }
@@ -1044,7 +1053,7 @@ void think(int depthLimit, int beamWidth=50) {
 	    for (int y = nowSkillState.H - 2; y >= 1; y--){//lower right
 	      for (int x = nowSkillState.W - 2; x >= 1; x--){
 		if (nowSkillState.field[y][x].isEmpty()){//place shadow (x,y)
-
+		  int cnt = 0;
 		  for (int j = 0; j < commands.size(); j++){
 		    State nextState = genNextState(nowSkillState, commands[j], true);
 		    if (nextState.fail){
@@ -1076,8 +1085,11 @@ void think(int depthLimit, int beamWidth=50) {
 		    if (death)continue;
 		    calculateMinDistToSoul(nextState);
 		    currentState[depth + 1].push_back(nextState);
+		    cnt++;
 		  }
-		  goto NextSegment4;
+		  if (cnt != 0){
+		    goto NextSegment4;
+		  }
 		}
 	      }
 	    }
@@ -1139,11 +1151,14 @@ void think(int depthLimit, int beamWidth=50) {
 	//ok
 	currentState[depth + 1].push_back(currentState[depth + 1][i]);
       }
-      currentState[depth + 1].erase(currentState[depth + 1].begin(), currentState[depth + 1].begin() + last);
+      if (currentState[depth + 1].size() != last){
+	currentState[depth + 1].erase(currentState[depth + 1].begin(), currentState[depth + 1].begin() + last);
+      }
+      //      cerr << currentState[depth + 1].size() << endl;
     }
 
   }
-
+  cerr << "taboocommand.size() = " << tabooCommands.size() << endl;
   for (int depth = depthLimit; depth >= 1; depth--){
     sort(currentState[depth].rbegin(), currentState[depth].rend());
     if (currentState[depth].empty())continue;
@@ -1154,8 +1169,8 @@ void think(int depthLimit, int beamWidth=50) {
     int targetX = currentState[depth][0].targetPoint.x;
     int targetY = currentState[depth][0].targetPoint.y;
 
-
-    if (skillId != -1 && skillDepth == 0){
+    cerr << currentState[depth][0].skillRivalId << " " << currentState[depth][0].targetRivalPoint.x << " " << currentState[depth][0].targetPoint.y << endl;
+    if (skillDepth == 0){
       if (skillId == 2 && targetX != -1){
 	cout << 3 << endl;
 	cout << 2 << " " << targetY << " " << targetX << endl;
