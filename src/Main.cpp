@@ -810,7 +810,7 @@ void think(int depthLimit, int beamWidth=50) {
 	  nextState.field[ny][nx].kind = 'O';
 	  nextState.rivalSkillPoint -= skills[2].cost;
 	  nextState.skillRivalId = 2;
-	  nextState.skillDepth = 0;
+	  nextState.skillRivalDepth = 0;
 	  nextState.targetPoint = Point(nx, ny);
 	  currentState[0].push_back(nextState);
 	}
@@ -819,7 +819,7 @@ void think(int depthLimit, int beamWidth=50) {
   }
 
   
-  //  set<int> tabooCommands;
+  set<int> tabooCommands;
   // cerr << currentState[0].size() << endl;
   for (int depth = 0; depth < depthLimit; depth++){
 
@@ -833,6 +833,9 @@ void think(int depthLimit, int beamWidth=50) {
       for (int j = 0; j < commands.size(); j++){
 	State nextState = genNextState(nowState, commands[j]);
 	if (nextState.fail){
+	  if (depth == 0 && nextState.skillRivalDepth == 0){//attack and use skill
+	    tabooCommands.insert(j);
+	  }
 	  deathNodeCnt++;
 	  continue;
 	}
@@ -865,9 +868,10 @@ void think(int depthLimit, int beamWidth=50) {
 		lightState.field[ny][nx].kind = '_';
 
 		lightState.skillPoint -= skills[3].cost;
-		lightState.skillId = 3;
-		lightState.skillDepth = depth;
-
+		if (lightState.skillDepth == -1){
+		  lightState.skillId = 3;
+		  lightState.skillDepth = depth;
+		}
 		lightState.nextRivalAttack = commands.size() - deathNodeCnt;
 
 		lightState.targetPoint = Point(nx, ny);
@@ -1085,18 +1089,30 @@ void think(int depthLimit, int beamWidth=50) {
     }
 
     if (depth == 0){
+      //      cerr << tabooCommands.size() << endl;
       int last = currentState[depth + 1].size();
       for (int i = 0; i < last; i++){
       	//simulate
 	int comId = currentState[depth + 1][i].commandId;
 	int skillId = currentState[depth + 1][i].skillId;
+	int skillDepth = currentState[depth + 1][i].skillDepth;
 	int skillRivalId = currentState[depth + 1][i].skillRivalId;
+	int skillRivalDepth = currentState[depth + 1][i].skillRivalDepth;	
 	State originState = myState;
-	
-      	if (skillRivalId != -1){//rival use skill attack
-	  if (skillId != -1){//I use skill
+	if (skillDepth != 0 && tabooCommands.count(comId) > 0){//first not use skill and probable death
+	   continue;
+	 }
+      	if (skillRivalDepth == 0){//rival use skill attack
+	  if (skillDepth == 0){//first I use skill
 	    int targetX = currentState[depth + 1][i].targetPoint.x;
 	    int targetY = currentState[depth + 1][i].targetPoint.y;
+	    if (skillId == 3){
+	      originState.field[targetY][targetX].kind = '_';
+	      State nextState = genNextState(originState, commands[comId]);
+	      if (nextState.fail){
+		continue;
+	      }
+	    }
 	    if (skillId == 5){//shadow
 	      State nextState = genNextState(originState, commands[comId], true);
 	      if (nextState.fail){
@@ -1115,6 +1131,7 @@ void think(int depthLimit, int beamWidth=50) {
 	      if (depth)continue;
 	    }
 	  }else{
+	    
 	    State nextState = genNextState(originState, commands[comId]);
 	    if (nextState.fail)continue;
 	  }
@@ -1137,7 +1154,7 @@ void think(int depthLimit, int beamWidth=50) {
     int targetX = currentState[depth][0].targetPoint.x;
     int targetY = currentState[depth][0].targetPoint.y;
 
-    //    cerr << currentState[depth][0].skillRivalId << " " << currentState[depth][0].targetRivalPoint.x << " " << currentState[depth][0].targetRivalPoint.y << endl;
+
     if (skillId != -1 && skillDepth == 0){
       if (skillId == 2 && targetX != -1){
 	cout << 3 << endl;
