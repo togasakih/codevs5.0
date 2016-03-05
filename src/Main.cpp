@@ -94,6 +94,10 @@ public:
   int skillDepth;
   Point targetPoint;
   int nextRivalAttack;
+  
+  int skillRivalId;
+  int skillRivalDepth;
+  Point targetRivalPoint;
   State() {
     skillPoint = H = W = -1;
     field.clear();
@@ -112,6 +116,10 @@ public:
     skillDepth = -1;
     targetPoint = Point(-1,-1);
     nextRivalAttack = INF;
+    
+    skillRivalId = -1;
+    skillRivalDepth = -1;
+    targetRivalPoint = Point(-1,-1);
   }
 
   static State input(int numOfSkills) {
@@ -807,11 +815,12 @@ void think(int depthLimit, int beamWidth=50) {
     }
   }
 
+  
   //  set<int> tabooCommands;
   // cerr << currentState[0].size() << endl;
   for (int depth = 0; depth < depthLimit; depth++){
 
-    if (currentState[depth].size() > beamWidth){
+    if (depth > 0 && currentState[depth].size() > beamWidth){
       sort(currentState[depth].rbegin(), currentState[depth].rend());
       currentState[depth].erase(currentState[depth].begin() + beamWidth, currentState[depth].end());
     }
