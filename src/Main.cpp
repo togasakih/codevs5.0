@@ -809,6 +809,9 @@ void think(int depthLimit, int beamWidth=50) {
 	  State nextState = myState;
 	  nextState.field[ny][nx].kind = 'O';
 	  nextState.rivalSkillPoint -= skills[2].cost;
+	  nextState.skillRivalId = 2;
+	  nextState.skillDepth = 0;
+	  nextState.targetPoint = Point(nx, ny);
 	  currentState[0].push_back(nextState);
 	}
       }
@@ -908,9 +911,10 @@ void think(int depthLimit, int beamWidth=50) {
 		    }
 		    //set skill
 		    nextState.skillPoint -= skills[5].cost;
-		    nextState.skillId = 5;
-		    nextState.skillDepth = depth;
-
+		    if (nextState.skillDepth == -1){
+		      nextState.skillId = 5;
+		      nextState.skillDepth = depth;
+		    }
 		    nextState.nextRivalAttack = commands.size() - deathNodeCnt;
 		    nextState.targetPoint = Point(x, y);
 		    simulateNextShadowDog(y, x,nextState);
@@ -932,9 +936,8 @@ void think(int depthLimit, int beamWidth=50) {
 		}
 	      }
 	    }
-    }
+	  }
 	  NextSegment1:;
-
 
 	  for (int id = 0; id < 2; id++){
 	    State nowSkillState = nowState;
@@ -955,9 +958,10 @@ void think(int depthLimit, int beamWidth=50) {
 		    }
 		    //set skill
 		    nextState.skillPoint -= skills[5].cost;
-		    nextState.skillId = 5;
-		    nextState.skillDepth = depth;
-
+		    if (nextState.skillDepth == -1){
+		      nextState.skillId = 5;
+		      nextState.skillDepth = depth;
+		    }
 		    nextState.nextRivalAttack = commands.size() - deathNodeCnt;
 		    nextState.targetPoint = Point(x, y);
 		    simulateNextShadowDog(y, x,nextState);
@@ -1001,9 +1005,10 @@ void think(int depthLimit, int beamWidth=50) {
 		    }
 		    //set skill
 		    nextState.skillPoint -= skills[5].cost;
-		    nextState.skillId = 5;
-		    nextState.skillDepth = depth;
-
+		    if (nextState.skillDepth == -1){
+		      nextState.skillId = 5;
+		      nextState.skillDepth = depth;
+		    }
 		    nextState.nextRivalAttack = commands.size() - deathNodeCnt;
 		    nextState.targetPoint = Point(x, y);
 		    simulateNextShadowDog(y, x,nextState);
@@ -1046,8 +1051,10 @@ void think(int depthLimit, int beamWidth=50) {
 		    }
 		    //set skill
 		    nextState.skillPoint -= skills[5].cost;
-		    nextState.skillId = 5;
-		    nextState.skillDepth = depth;
+		    if (nextState.skillDepth == -1){
+		      nextState.skillId = 5;
+		      nextState.skillDepth = depth;
+		    }
 
 		    nextState.nextRivalAttack = commands.size() - deathNodeCnt;
 		    nextState.targetPoint = Point(x, y);
@@ -1077,8 +1084,47 @@ void think(int depthLimit, int beamWidth=50) {
       }
     }
 
+    if (depth == 0){
+      int last = currentState[depth + 1].size();
+      for (int i = 0; i < last; i++){
+      	//simulate
+	int comId = currentState[depth + 1][i].commandId;
+	int skillId = currentState[depth + 1][i].skillId;
+	int skillRivalId = currentState[depth + 1][i].skillRivalId;
+	State originState = myState;
+	
+      	if (skillRivalId != -1){//rival use skill attack
+	  if (skillId != -1){//I use skill
+	    int targetX = currentState[depth + 1][i].targetPoint.x;
+	    int targetY = currentState[depth + 1][i].targetPoint.y;
+	    if (skillId == 5){//shadow
+	      State nextState = genNextState(originState, commands[comId], true);
+	      if (nextState.fail){
+		continue;
+	      }
+	      simulateNextShadowDog(targetY, targetX,nextState);
+	      bool death = false;
+	      for (int tmp = 0; tmp < 2; tmp++){
+		int px = nextState.ninjas[tmp].x;
+		int py = nextState.ninjas[tmp].y;
+		if (nextState.field[py][px].containsDog){
+		  death = true;
+		  break;
+		}
+	      }
+	      if (depth)continue;
+	    }
+	  }else{
+	    State nextState = genNextState(originState, commands[comId]);
+	    if (nextState.fail)continue;
+	  }
+      	}
+	//ok
+	currentState[depth + 1].push_back(currentState[depth + 1][i]);
+      }
+      currentState[depth + 1].erase(currentState[depth + 1].begin(), currentState[depth + 1].begin() + last);
+    }
 
-    //    beamWidth += 50;
   }
 
   for (int depth = depthLimit; depth >= 1; depth--){
@@ -1091,7 +1137,7 @@ void think(int depthLimit, int beamWidth=50) {
     int targetX = currentState[depth][0].targetPoint.x;
     int targetY = currentState[depth][0].targetPoint.y;
 
-
+    //    cerr << currentState[depth][0].skillRivalId << " " << currentState[depth][0].targetRivalPoint.x << " " << currentState[depth][0].targetRivalPoint.y << endl;
     if (skillId != -1 && skillDepth == 0){
       if (skillId == 2 && targetX != -1){
 	cout << 3 << endl;
