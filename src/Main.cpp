@@ -89,7 +89,8 @@ public:
   vector<int> commandId;
   vector<int> minDistSoulById;
   int rivalSkillPoint;
-
+  
+  int skillUseId;
   int skillId;
   int skillDepth;
   Point targetPoint;
@@ -114,6 +115,7 @@ public:
     commandId.clear();
     minDistSoulById.clear();
     rivalSkillPoint = 0;
+    skillUseId = -1;
     skillId = -1;
     skillDepth = -1;
     targetPoint = Point(-1,-1);
@@ -362,6 +364,37 @@ bool validateOrder(const State& nowState, int comId, int skillId){
   return true;
 }
 
+void useWhirlslash(const State& nowState, int id, const Order &order, vector<Order> &result){
+  if (nowState.skillPoint < skills[7].cost and skills[7].cost <= 8){
+    return ;
+  }
+  int px = nowState.ninjas[id].x;
+  int py = nowState.ninjas[id].y;
+  Order nextOrder = order;
+  for (int y = -1; y <= 1; y++){
+    for (int x = -1; x <= 1; x++){
+      if (nowState.field[py + y][px + x].containsDog){
+	nextOrder.setSkill(id, 7);
+	result.push_back(nextOrder);
+	return ;
+      }
+    }
+  }
+  return ;
+}
+
+void useShadowClone(const State &nowState, vector<Order> &result){
+  int H = nowState.H;
+  int W = nowState.W;
+  for (int y = 1; y < H - 1; y++){
+    for (int x = 1; x < W - 1; x++){
+
+    }
+  }
+
+  return ;
+}
+
 
 vector<Order> possibleOrder(const State& nowState, int depth){
   vector<Order> result;
@@ -372,7 +405,12 @@ vector<Order> possibleOrder(const State& nowState, int depth){
 	result.push_back(nowOrder);
       }
       if (depth == 0){
+	//2
 	useLightning(nowState, nowOrder, result);
+	//7
+	for (int id = 0; id < 2; id++){
+	  useWhirlslash(nowState, id, nowOrder, result);
+	}
       }
   }
   return result;
@@ -750,7 +788,7 @@ void simulateAttack(State &nowState, const Attack &attack){
   return;
 }
 
-void simulateDefence(State& nowState, int skillId, Point targetPoint){
+void simulateDefence(State& nowState, int skillUseId,int skillId, Point targetPoint){
   int tarX = targetPoint.x;
   int tarY = targetPoint.y;
   if (skillId == -1){
@@ -762,7 +800,18 @@ void simulateDefence(State& nowState, int skillId, Point targetPoint){
       return ;
     }
   }
-
+  if (skillId == 7){
+    int px = nowState.ninjas[skillUseId].x;
+    int py = nowState.ninjas[skillUseId].y;
+    for (int y = -1; y <= 1; y++){
+      for (int x = -1; x <= 1; x++){
+	int nx = px + x;
+	int ny = py + y;
+	nowState.field[ny][nx].containsDog = false;
+      }
+    }
+    return ;
+  }
   return ;
 }
 
@@ -806,13 +855,14 @@ void think(int depthLimit, int beamWidth=100) {
       for (int i = 0; i < myOrders.size(); i++){
 	int survive = 1;
 	int comId = myOrders[i].comId;
+	int skillUseId = myOrders[i].skillUseId;
 	int skillId = myOrders[i].skillId;
 	int skillCost = myOrders[i].skillCost;
 	Point targetPoint = myOrders[i].targetPoint;
 	for (int j = 0; j < rivalAttacks.size(); j++){
 	  State nextState = currentState[depth][k];
 	  simulateAttack(nextState, rivalAttacks[j]);
-	  simulateDefence(nextState, skillId, targetPoint);
+	  simulateDefence(nextState, skillUseId, skillId, targetPoint);
 	  int tmp = genNextState(nextState, commands[comId]);
 	  if (tmp == -1){//killed
 	    if (rivalAttacks[j].skillId != -1){//use skill
@@ -833,6 +883,7 @@ void think(int depthLimit, int beamWidth=100) {
 	  nextState.commandId.push_back(comId);
 	  nextState.survive.push_back(survive);
 	  if (skillId != -1){
+	    nextState.skillUseId = skillUseId;
 	    nextState.skillId = skillId;
 	    nextState.targetPoint = targetPoint;
 	  }
@@ -855,6 +906,7 @@ void think(int depthLimit, int beamWidth=100) {
     
     for (int i = 0; i < currentState[depth].size(); i++){
       int comId = currentState[depth][i].commandId[0];
+      int skillUseId = currentState[depth][i].skillUseId;
       int skillId = currentState[depth][i].skillId;
       int tarX = currentState[depth][i].targetPoint.x;
       int tarY = currentState[depth][i].targetPoint.y;
@@ -863,6 +915,10 @@ void think(int depthLimit, int beamWidth=100) {
 	if (skillId == 3){
 	  cout << 3 << endl;
 	  cout << 3 << " " << tarY << " " << tarX << endl;
+	}
+	if (skillId == 7){
+	  cout << 3 << endl;
+	  cout << 7 << " " << skillUseId << endl;
 	}
 	for (int j = 0; j < commands[comId].size(); j++){
 	  string com = commands[comId][j];
