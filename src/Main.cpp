@@ -186,19 +186,23 @@ public:
   bool operator < (const State &right) const {
     for (int i = 0; i < survive.size(); i++){
       if (survive[i] < right.survive[i]){
-	return true;
+    	return true;
       }
       if (survive[i] > right.survive[i]){
-	return false;
-      }
-      if (getSoul == right.getSoul){
-	if(minDistSoulById[0] + minDistSoulById[1] == right.minDistSoulById[0] + right.minDistSoulById[1]){
-	  return skillPoint < right.skillPoint;
-	}
-	return minDistSoulById[0] + minDistSoulById[1] > right.minDistSoulById[0] + right.minDistSoulById[1];
+    	return false;
       }
     }
-    return getSoul < right.getSoul;
+
+    if (getSoul < right.getSoul){
+      return true;
+    }
+    if (getSoul > right.getSoul){
+      return false;
+    }
+    if(minDistSoulById[0] + minDistSoulById[1] == right.minDistSoulById[0] + right.minDistSoulById[1]){
+      return skillPoint < right.skillPoint;
+    }
+    return minDistSoulById[0] + minDistSoulById[1] > right.minDistSoulById[0] + right.minDistSoulById[1];
   }
 };
 
@@ -225,25 +229,34 @@ public:
   }
   
 };
-
+vector<Skill> skills;
 class Order{
 public:
   int comId;
+  int skillUseId;
   int skillId;
-
+  int skillCost;
   Point targetPoint;
   Order(){
     comId = -1;
     skillId = -1;
     targetPoint = Point(-1, -1);
+    skillCost = 0;
+    skillUseId = -1;
   }
-  Order(int comId, int skillId, int x, int y):comId(comId),skillId(skillId),targetPoint(x, y){}
+  Order(int comId, int skillUseId,int skillId, int skillCost,int x, int y):comId(comId),skillUseId(skillUseId),skillId(skillId),skillCost(skillCost),targetPoint(x, y){}
 
   void setOrder(int id){
     comId = id;
   }
+  void setSkill(int useId, int id){
+    skillUseId = useId;
+    skillId = id;
+    skillCost = skills[id].cost;
+  }
   void setSkill(int id){
     skillId = id;
+    skillCost = skills[id].cost;
   }
   void setTargetPoint(int x, int y){
     targetPoint = Point(x, y);
@@ -252,7 +265,7 @@ public:
 
 
 int remTime;
-vector<Skill> skills;
+//vector<Skill> skills;
 State myState;
 State rivalState;
 
@@ -264,24 +277,25 @@ int dogDx[] =    {  0,   -1,   1,  0,   0};//U L R D
 int dogDy[] =    { -1,   0,   0,   1,   0};
 vector<vector<string> > commands;
 
-void useLightning(const State& nowState, Order &order,vector<Order> &result){
+void useLightning(const State& nowState, const Order &order, vector<Order> &result){
   if (nowState.skillPoint < skills[3].cost){
     return ;
   }
-  
+  Order next = order;
   for (int id = 0; id < 2; id++){
     int px = nowState.ninjas[id].x;
     int py = nowState.ninjas[id].y;
-    for (int y = -2; y <= 2; y++){
-      for (int x = -2; x <= 2; x++){
+    for (int y = -1; y <= 1; y++){
+      for (int x = -1; x <= 1; x++){
 	int lightX = px + x;
 	int lightY = py + y;
 	if (lightX <= 0 || lightX >= nowState.W - 1 || lightY <= 0 || lightY >= nowState.H - 1){
 	  continue;
 	}
-	order.setSkill(3);
-	order.setTargetPoint(lightX, lightY);
-	result.push_back(order);
+	//if (!nowState.field[lightY][lightX].isObject())continue;
+	next.setSkill(3);
+	next.setTargetPoint(lightX, lightY);
+	result.push_back(next);
       }
     }
   }
@@ -320,13 +334,46 @@ vector<Attack> possibleAttack(const State& myState, const State& rivalState){
   
   return result;
 }
+bool validateOrder(const State& nowState, int comId, int skillId){
 
-vector<Order> possibleOrder(const State& nowState){
+  
+  for (int id = 0; id < 2; id++){
+    int px = nowState.ninjas[id].x;
+    int py = nowState.ninjas[id].y;
+    int nx = px;
+    int ny = py;
+    for (int i = 0; i < commands[comId][id].size(); i++){
+      nx += dx[commands[comId][id][i] - '0'];
+      ny += dy[commands[comId][id][i] - '0'];
+      if (nowState.field[ny][nx].isWall()){
+	return false;
+      }
+      if (nowState.field[ny][nx].isObject()){
+	int nnx = nx + dx[commands[comId][id][i] - '0'];	
+	int nny = ny + dy[commands[comId][id][i] - '0'];
+	if (!nowState.field[nny][nnx].isEmpty() || nowState.field[nny][nnx].containsDog || nowState.field[nny][nnx].containsNinja){
+	  if (skillId == -1){
+	    return false;
+	  }
+	}
+      }
+    }
+  }
+  return true;
+}
+
+
+vector<Order> possibleOrder(const State& nowState, int depth){
   vector<Order> result;
+  Order nowOrder;  
   for (int i = 0; i < commands.size(); i++){
-      Order nowOrder;
       nowOrder.setOrder(i);
-      result.push_back(nowOrder);
+      if (validateOrder(nowState, i, -1)){
+	result.push_back(nowOrder);
+      }
+      if (depth == 0){
+	useLightning(nowState, nowOrder, result);
+      }
   }
   return result;
 }
@@ -368,14 +415,13 @@ void calculateMinDistToSoul(State &nowState){
     while (!open.empty()){
       Search sc = open.front();
       open.pop();
-
       if (!field[sy][sx].isEmpty())continue;
       for (int dir = 0; dir < 4; dir++){
 	int nx = sc.x + dx[dir];
 	int ny = sc.y + dy[dir];
 	if (field[ny][nx].isWall())continue;
 	if (closed[ny][nx])continue;
-
+	if (field[ny][nx].containsDog)continue;
 	if (field[ny][nx].isObject()){
 	  int nnx = nx + dx[dir];
 	  int nny = ny + dy[dir];
@@ -527,14 +573,15 @@ int genNextState(State &nextState, const vector<string> &command, bool shadow=fa
       int ny = py + dy[com[i] - '0'];
       
       if (nextState.field[ny][nx].isWall()){
-	continue;
+	return -1;
       }
 
       if (nextState.field[ny][nx].isObject()){//rock
 	//next empty
 	int nnx = nx + dx[com[i] - '0'];
 	int nny = ny + dy[com[i] - '0'];
-	if (!nextState.field[nny][nnx].isEmpty() || nextState.field[nny][nnx].containsDog || nextState.field[nny][nnx].containsNinja){
+	if (nextState.field[nny][nnx].isWall() || !nextState.field[nny][nnx].isEmpty() || nextState.field[nny][nnx].containsDog || nextState.field[nny][nnx].containsNinja){
+
 	  continue;
 	}
 	swap(nextState.field[ny][nx].kind, nextState.field[nny][nnx].kind);
@@ -552,24 +599,16 @@ int genNextState(State &nextState, const vector<string> &command, bool shadow=fa
       nextState.ninjas[id].x = nx;
       nextState.ninjas[id].y = ny;
     }
-
     //next killed by dog
-    if (!shadow){
+  }
+  if (!shadow){
+    for (int id = 0; id < 2; id++){
       for (int i = 0; i < 5; i++){
 	int nx = nextState.ninjas[id].x + dx[i];
 	int ny = nextState.ninjas[id].y + dy[i];
 	if (nextState.field[ny][nx].containsDog){
 	  return -1;//killed
 	}
-      }
-    }
-  }
-  for (int id = 0; id < 2; id++){
-    for (int i = 0; i < 5; i++){
-      int nx = nextState.ninjas[id].x + dx[i];
-      int ny = nextState.ninjas[id].y + dy[i];
-      if (nextState.field[ny][nx].containsDog){
-	return -1;//killed
       }
     }
   }
@@ -591,7 +630,7 @@ bool nextKilledByDogs(const State &nowState, const vector<string> &command){
       int nx = px + dx[com[i] - '0'];
       int ny = py + dy[com[i] - '0'];
       if (nextState.field[ny][nx].isWall()){
-	continue;
+	return -1;
       }
 
       if (nextState.field[ny][nx].isObject()){//rock
@@ -708,9 +747,32 @@ void simulateAttack(State &nowState, const Attack &attack){
   if (skillId == 2){
     nowState.field[tarY][tarX].kind = 'O';
   }
-
+  return;
 }
 
+void simulateDefence(State& nowState, int skillId, Point targetPoint){
+  int tarX = targetPoint.x;
+  int tarY = targetPoint.y;
+  if (skillId == -1){
+    return ;
+  }
+  if (skillId == 3){
+    if (nowState.field[tarY][tarX].isObject()){
+      nowState.field[tarY][tarX].kind = '_';
+      return ;
+    }
+  }
+
+  return ;
+}
+
+void showState(const vector<State> &currentState){
+  cerr << "-----------------------" << endl;
+  for (int i = 0; i < currentState.size(); i++){
+    cout << currentState[i].getSoul << endl;
+  }
+  cerr << "-----------------------" << endl;
+}
 /*
  * このAIについて
  * - 各忍者について、 thinkByNinja(id) を2回行います。
@@ -720,38 +782,42 @@ void simulateAttack(State &nowState, const Attack &attack){
  * -- 「超高速」のみを使用します。
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
-void think(int depthLimit, int beamWidth=INF) {
+void think(int depthLimit, int beamWidth=100) {
   vector<State> currentState[depthLimit + 1];
   currentState[0].push_back(myState);
-
+  //depth 0
   for (int depth = 0; depth < depthLimit; depth++){
-    cerr << currentState[depth].size() << endl;
-    if (currentState[depth].size() > beamWidth){
-      sort(currentState[depth].rbegin(), currentState[depth].rbegin() );
+
+    if (currentState[depth].size() >= beamWidth){
+      sort(currentState[depth].rbegin(), currentState[depth].rend());
       currentState[depth].erase(currentState[depth].begin() + beamWidth, currentState[depth].end());
     }
-    cerr << currentState[depth].size() << endl;
+    //    cerr << currentState[depth].size() << endl;
     for (int k = 0; k < currentState[depth].size(); k++){
-      State nowState = currentState[depth][k];
-      vector<Order> myOrders = possibleOrder(nowState);
+
+      vector<Order> myOrders = possibleOrder(currentState[depth][k], depth);
       vector<Attack> rivalAttacks;
-
-      rivalAttacks = possibleAttack(nowState, rivalState);
-
-      //      cerr << myOrders.size() << " " << rivalAttacks.size() << endl;
+      if (depth == 0){
+	rivalAttacks = possibleAttack(currentState[depth][k], rivalState);
+      }else{
+	rivalAttacks.push_back(Attack());
+      }
+      //cerr << myOrders.size() << " " << rivalAttacks.size() << endl;
       for (int i = 0; i < myOrders.size(); i++){
 	int survive = 1;
 	int comId = myOrders[i].comId;
 	int skillId = myOrders[i].skillId;
-	//	cerr << comId << " " << skillId << " " << commands.size() << endl;
+	int skillCost = myOrders[i].skillCost;
+	Point targetPoint = myOrders[i].targetPoint;
 	for (int j = 0; j < rivalAttacks.size(); j++){
-	  State nextState = nowState;
+	  State nextState = currentState[depth][k];
 	  simulateAttack(nextState, rivalAttacks[j]);
+	  simulateDefence(nextState, skillId, targetPoint);
 	  int tmp = genNextState(nextState, commands[comId]);
-	  //	  cerr << "tmp = " << tmp << endl;
 	  if (tmp == -1){//killed
 	    if (rivalAttacks[j].skillId != -1){//use skill
 	      survive = -1;
+	      break;
 	    }else{//unused skill
 	      survive = -2;
 	      break;
@@ -759,34 +825,53 @@ void think(int depthLimit, int beamWidth=INF) {
 	  }
 
 	  if (tmp == 1){//survive
-	    
 	  }
-	  //simulateNextDog(nextState);
 	}
-	//cerr << myOrders.size() << " " << rivalAttacks.size() << endl;
-	if (survive == 1 || survive == -1){
-	  State nextState = nowState;
+
+	if (survive == 1){
+	  State nextState = currentState[depth][k];
 	  nextState.commandId.push_back(comId);
 	  nextState.survive.push_back(survive);
-	  genNextState(nextState, commands[comId]);//survive
+	  if (skillId != -1){
+	    nextState.skillId = skillId;
+	    nextState.targetPoint = targetPoint;
+	  }
+	  nextState.skillPoint -= skillCost;
 	  
+	  genNextState(nextState, commands[comId]);//survive
 	  simulateNextDog(nextState);
 	  calculateMinDistToSoul(nextState);
 	  currentState[depth + 1].push_back(nextState);
 	}
+      NextOrder:;
       }
     }
+    //    beamWidth -= 15;
   }
 
   for (int depth = depthLimit; depth >= 1; depth--){
-    //    cerr << "Done!!" << endl;
+
     sort(currentState[depth].rbegin(), currentState[depth].rend());
+    
     for (int i = 0; i < currentState[depth].size(); i++){
       int comId = currentState[depth][i].commandId[0];
       int skillId = currentState[depth][i].skillId;
-      cerr << currentState[depth][i].survive[0] << endl;
+      int tarX = currentState[depth][i].targetPoint.x;
+      int tarY = currentState[depth][i].targetPoint.y;
+      //cerr <<  currentState[depth][i].ninjas[0].y << " " << currentState[depth][i].ninjas[0].x << " " << currentState[depth][i].getSoul << " " << currentState[depth][i].survive[0] << endl;
       if (skillId != -1){//use skill
-	
+	if (skillId == 3){
+	  cout << 3 << endl;
+	  cout << 3 << " " << tarY << " " << tarX << endl;
+	}
+	for (int j = 0; j < commands[comId].size(); j++){
+	  string com = commands[comId][j];
+	  for (int k = 0; k < com.size(); k++){
+	    cout << ds[com[k] - '0'];
+	  }
+	  cout << endl;
+	}
+	return ;
       }else{//unused skill
 	cout << 2 << endl;
 	for (int j = 0; j < commands[comId].size(); j++){
@@ -831,7 +916,7 @@ int main() {
   cout.flush();
   commands = createCommands();
   while (input()) {
-    think(1);
+    think(3);
     cout.flush();
   }
 
