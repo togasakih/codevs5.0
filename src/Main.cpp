@@ -204,11 +204,6 @@ public:
   Search(int x, int y, int dist): Point(x, y), dist(dist) {}
 };
 
-class MinDist {
-public:
-  int dogDist, soulDist;
-  MinDist(int dogDist, int soulDist): dogDist(dogDist), soulDist(soulDist) {}
-};
 
 int remTime;
 vector<Skill> skills;
@@ -223,138 +218,6 @@ int dogDx[] =    {  0,   -1,   1,  0,   0};//U L R D
 int dogDy[] =    { -1,   0,   0,   1,   0};
 
 vector<vector<string> > commands;
-/**
- * (sx, sy) を起点として、幅優先探索で (最も近い忍犬までの距離, 最も近いアイテムまでの距離) を計算して MinDist で返します。
- * 忍犬やアイテムがフィールド上に存在しない場合は、対応する値を INF として返します。
- * (sx, sy) が歩けない場所である場合、 MinDist(-INF, -INF) として返します。
- */
-MinDist getMinDist(const State &st, int sx, int sy) {
-  if (!st.field[sy][sx].isEmpty()) {
-    return MinDist(-INF, -INF);
-  }
-
-  MinDist minDist(INF, INF);
-  queue<Search> open;
-  vector< vector<bool> > closed(st.H, vector<bool>(st.W, false));
-  closed[sy][sx] = true;
-  open.push(Search(sx, sy, 0));
-
-  while (!open.empty()) {
-    Search sc = open.front(); open.pop();
-
-    if (st.field[sc.y][sc.x].containsDog && minDist.dogDist == INF) {
-      minDist.dogDist = sc.dist;
-    }
-    if (st.field[sc.y][sc.x].containsSoul && minDist.soulDist == INF) {
-      minDist.soulDist = sc.dist;
-    }
-
-    if (minDist.dogDist != INF && minDist.soulDist != INF) return minDist;
-
-    for (int dir = 0; dir < 4; dir++) {
-      int nx = sc.x + dx[dir];
-      int ny = sc.y + dy[dir];
-
-      if (!st.field[ny][nx].isEmpty()) continue;
-      if (closed[ny][nx]) continue;
-
-      closed[ny][nx] = true;
-      open.push(Search(nx, ny, sc.dist + 1));
-    }
-  }
-
-  return minDist;
-}
-
-/*
- * 引数
- * - id: 忍者ID
- * - dir: 忍者を歩かせる方向
- *
- * ID が id である忍者を dir の方向へ移動するシミュレートを行います。
- * この関数で行われるシミュレート内容
- * - 忍者の位置修正 (移動先が岩の場合は、位置修正を行わずにシミュレートを終了します)
- * - 移動先にニンジャソウルが存在する場合、取得処理(忍力回復する, フィールドのソウルフラグをfalseにする, 取得済みのソウルの座標削除)が行われます。
- * (※簡単なシミュレートのため、壁を押すなどの処理は行われません)
- */
-void simulateWalk(int id, int dir) {
-  int nx = myState.ninjas[id].x + dx[dir];
-  int ny = myState.ninjas[id].y + dy[dir];
-  if (!myState.field[ny][nx].isEmpty()) return;
-
-  myState.ninjas[id].x = nx;
-  myState.ninjas[id].y = ny;
-
-  if (!myState.field[ny][nx].containsSoul) return;
-
-  // 忍力回復
-  myState.skillPoint += 2;
-
-  // フィールドのフラグをfalseに
-  myState.field[ny][nx].containsSoul = false;
-
-  // 取得済みのソウルの座標削除
-  myState.souls.erase( find(myState.souls.begin(), myState.souls.end(), Point(nx, ny)) );
-}
-
-
-/*
- * 移動方向の決め方
- * - 忍者は、自分自身から最も近いニンジャソウルへ向かって移動します。
- * - 壁を押さずに移動します。
- * - 忍犬までの最短距離が1以下になるようなマスへは移動しません。
- * - 自分自身のマスから連結であるマスの中にニンジャソウルが存在しない場合は、忍犬までの最短距離が最大になるように移動します。
- * -- 忍犬も存在しない場合は、その場にとどまります。
- */
-string thinkByNinjaId(int id) {
-  vector<MinDist> dists;
-  vector<Point> points;
-
-  for (int dir = 0; dir < 5; dir++) {
-    int nx = myState.ninjas[id].x + dx[dir];
-    int ny = myState.ninjas[id].y + dy[dir];
-    dists.push_back(getMinDist(myState, nx, ny));
-    points.push_back(Point(nx, ny));
-  }
-
-  // ニンジャソウルへ近づく方向
-  int minDistSoul = INF;
-  int minDistSoulDir = 4;
-
-  // 忍犬から遠ざかる方向
-  int maxDistDog = -INF;
-  int maxDistDogDir = 4;
-
-  for (int dir = 0; dir < 5; dir++) {
-    // この方向には歩くことができないので無視
-    if (dists[dir].soulDist == -INF) continue;
-
-    // 忍犬までの距離が1以下になってしまうので無視
-    if (dists[dir].dogDist <= 1) continue;
-
-    if (minDistSoul > dists[dir].soulDist) {
-      minDistSoul = dists[dir].soulDist;
-      minDistSoulDir = dir;
-    }
-
-    if (maxDistDog < dists[dir].dogDist) {
-      maxDistDog = dists[dir].dogDist;
-      maxDistDogDir = dir;
-    }
-  }
-
-  int dir = 4;
-  if (minDistSoul != INF) {
-    dir = minDistSoulDir;
-  } else {
-    dir = maxDistDogDir;
-  }
-
-  if (dir == 4) return ds[dir];
-  simulateWalk(id, dir);
-  return ds[dir];
-}
-
 
 vector<vector<string> > createCommands(){
   vector<vector<string> > result;
@@ -379,7 +242,6 @@ vector<vector<string> > createCommands(){
 }
 
 void calculateMinDistToSoul(State &nowState){
-
 
   for (int id = 0; id < 2; id++){
     int sx = nowState.ninjas[id].x;
