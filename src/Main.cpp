@@ -98,9 +98,12 @@ public:
   
   int skillRivalId;
   int skillRivalDepth;
-  Point targetRivalPoint;
 
+  Point targetRivalPoint;
   vector<int> survive;
+  int reachDeath;
+  int hammingDistance;
+  int stepNum;
   State() {
     skillPoint = H = W = -1;
     field.clear();
@@ -125,6 +128,10 @@ public:
     skillRivalDepth = -1;
     targetRivalPoint = Point(-1,-1);
     survive.clear();
+
+    reachDeath = 0;
+    hammingDistance = 0;
+    stepNum = 0;
   }
 
   static State input(int numOfSkills) {
@@ -186,6 +193,16 @@ public:
   }
 
   bool operator < (const State &right) const {
+    
+    if (survive[0] == -1 && right.survive[0] == -1){//probably death
+      if (skillId != -1 && right.skillId == -1){
+	return false;
+      }
+      if (skillId == -1 && skillId != -1){
+	return true;
+      }
+    }
+    
     for (int i = 0; i < survive.size(); i++){
       if (survive[i] < right.survive[i]){
     	return true;
@@ -193,15 +210,37 @@ public:
       if (survive[i] > right.survive[i]){
     	return false;
       }
-    }
 
+    }
+    
     if (getSoul < right.getSoul){
       return true;
     }
     if (getSoul > right.getSoul){
       return false;
     }
-    if(minDistSoulById[0] + minDistSoulById[1] == right.minDistSoulById[0] + right.minDistSoulById[1]){
+    
+
+    if(minDistSoulById[0] + minDistSoulById[1] ==  right.minDistSoulById[0] + right.minDistSoulById[1]){
+
+      if (hammingDistance < right.hammingDistance){
+	return true;
+      }
+      if (hammingDistance > right.hammingDistance){
+	return false;
+      }
+      if (stepNum < right.stepNum){
+	return true;
+      }
+      if (stepNum > right.stepNum){
+	return false;
+      }
+      // if (reachDeath > right.reachDeath){
+      // 	return true;
+      // }
+      // if (!reachDeath < right.reachDeath){
+      // 	return false;
+      // }
       return skillPoint < right.skillPoint;
     }
     return minDistSoulById[0] + minDistSoulById[1] > right.minDistSoulById[0] + right.minDistSoulById[1];
@@ -365,7 +404,7 @@ bool validateOrder(const State& nowState, int comId, int skillId){
 }
 
 void useWhirlslash(const State& nowState, int id, const Order &order, vector<Order> &result){
-  if (nowState.skillPoint < skills[7].cost and skills[7].cost <= 8){
+  if (nowState.skillPoint < skills[7].cost){
     return ;
   }
   int px = nowState.ninjas[id].x;
@@ -396,20 +435,25 @@ void useShadowClone(const State &nowState, vector<Order> &result){
 }
 
 
-vector<Order> possibleOrder(const State& nowState, int depth){
+vector<Order> possibleOrder(const State& nowState, int depth, bool useSpecialSkill){
   vector<Order> result;
   Order nowOrder;  
   for (int i = 0; i < commands.size(); i++){
       nowOrder.setOrder(i);
+
       if (validateOrder(nowState, i, -1)){
 	result.push_back(nowOrder);
       }
       if (depth == 0){
 	//2
-	useLightning(nowState, nowOrder, result);
+	if (!useSpecialSkill){
+	  useLightning(nowState, nowOrder, result);
+	}
 	//7
-	for (int id = 0; id < 2; id++){
-	  useWhirlslash(nowState, id, nowOrder, result);
+	if (useSpecialSkill){
+	  for (int id = 0; id < 2; id++){
+	    useWhirlslash(nowState, id, nowOrder,result);
+	  }
 	}
       }
   }
@@ -480,7 +524,32 @@ void calculateMinDistToSoul(State &nowState){
 
 }
 
+void checkReachDeath(State& nowState){
+  for (int id = 0; id < 2; id++){
+    int x = nowState.ninjas[id].x;
+    int y = nowState.ninjas[id].y;
+    int wall = 0;
+    int rock = 0;
+    int dog = 0;
+    for (int k = 0; k < 4; k++){
+      int nx = x + dx[k];
+      int ny = y + dy[k];
+      if (nowState.field[ny][nx].containsDog){
+	dog++;
+      }
+      if (nowState.field[ny][nx].isObject()){
+	rock++;
+      }
+      if (nowState.field[ny][nx].isWall()){
+	wall++;
+      }
+    }
+    if (dog > 0){
+      nowState.reachDeath = dog + rock;
+    }
+  }
 
+}
 void simulateNextDog(State &nowState){
 
   vector<vector<int> > dist(nowState.H, vector<int>(nowState.W, INF));
@@ -632,10 +701,14 @@ int genNextState(State &nextState, const vector<string> &command, bool shadow=fa
 	nextState.souls.erase( find(nextState.souls.begin(), nextState.souls.end(), Point(nx, ny)) );
       }
       //next
+
       nextState.field[py][px].containsNinja = false;
       nextState.field[ny][nx].containsNinja = true;
       nextState.ninjas[id].x = nx;
       nextState.ninjas[id].y = ny;
+      if (com[i] != '4'){
+	nextState.stepNum++;
+      }
     }
     //next killed by dog
   }
@@ -814,7 +887,18 @@ void simulateDefence(State& nowState, int skillUseId,int skillId, Point targetPo
   }
   return ;
 }
+void calculateHammingDistance(State& state){
+  int px = state.ninjas[0].x;
+  int py = state.ninjas[0].y;
+  
+  int qx = state.ninjas[1].x;
+  int qy = state.ninjas[1].y;
 
+  state.hammingDistance = abs(px - qx) + abs(py - qy);
+
+
+  return ;
+}
 void showState(const vector<State> &currentState){
   cerr << "-----------------------" << endl;
   for (int i = 0; i < currentState.size(); i++){
@@ -831,10 +915,12 @@ void showState(const vector<State> &currentState){
  * -- 「超高速」のみを使用します。
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
-void think(int depthLimit, int beamWidth=100) {
+void think(int depthLimit, int beamWidth=180) {
   vector<State> currentState[depthLimit + 1];
   currentState[0].push_back(myState);
   //depth 0
+  bool useSpecialSkill = false;
+  set<int> tabooCommands;
   for (int depth = 0; depth < depthLimit; depth++){
 
     if (currentState[depth].size() >= beamWidth){
@@ -844,7 +930,7 @@ void think(int depthLimit, int beamWidth=100) {
     //    cerr << currentState[depth].size() << endl;
     for (int k = 0; k < currentState[depth].size(); k++){
 
-      vector<Order> myOrders = possibleOrder(currentState[depth][k], depth);
+      vector<Order> myOrders = possibleOrder(currentState[depth][k], depth, useSpecialSkill);
       vector<Attack> rivalAttacks;
       if (depth == 0){
 	rivalAttacks = possibleAttack(currentState[depth][k], rivalState);
@@ -859,6 +945,7 @@ void think(int depthLimit, int beamWidth=100) {
 	int skillId = myOrders[i].skillId;
 	int skillCost = myOrders[i].skillCost;
 	Point targetPoint = myOrders[i].targetPoint;
+	
 	for (int j = 0; j < rivalAttacks.size(); j++){
 	  State nextState = currentState[depth][k];
 	  simulateAttack(nextState, rivalAttacks[j]);
@@ -867,9 +954,9 @@ void think(int depthLimit, int beamWidth=100) {
 	  if (tmp == -1){//killed
 	    if (rivalAttacks[j].skillId != -1){//use skill
 	      survive = -1;
-	      break;
 	    }else{//unused skill
 	      survive = -2;
+	      tabooCommands.insert(j);
 	      break;
 	    }
 	  }
@@ -878,7 +965,7 @@ void think(int depthLimit, int beamWidth=100) {
 	  }
 	}
 
-	if (survive == 1){
+	if (survive == 1 || survive == -1){
 	  State nextState = currentState[depth][k];
 	  nextState.commandId.push_back(comId);
 	  nextState.survive.push_back(survive);
@@ -886,18 +973,26 @@ void think(int depthLimit, int beamWidth=100) {
 	    nextState.skillUseId = skillUseId;
 	    nextState.skillId = skillId;
 	    nextState.targetPoint = targetPoint;
+	    nextState.skillPoint -= skillCost;	    
 	  }
-	  nextState.skillPoint -= skillCost;
+	  
 	  
 	  genNextState(nextState, commands[comId]);//survive
 	  simulateNextDog(nextState);
 	  calculateMinDistToSoul(nextState);
+	  calculateHammingDistance(nextState);
+	  //	  checkReachDeath(nextState);
 	  currentState[depth + 1].push_back(nextState);
 	}
       NextOrder:;
       }
     }
-    //    beamWidth -= 15;
+    if (depth == 0 && !useSpecialSkill){
+      if (currentState[depth + 1].empty()){//use special skill
+	useSpecialSkill = true;
+	depth -= 1;
+      }
+    }
   }
 
   for (int depth = depthLimit; depth >= 1; depth--){
@@ -910,7 +1005,7 @@ void think(int depthLimit, int beamWidth=100) {
       int skillId = currentState[depth][i].skillId;
       int tarX = currentState[depth][i].targetPoint.x;
       int tarY = currentState[depth][i].targetPoint.y;
-      //cerr <<  currentState[depth][i].ninjas[0].y << " " << currentState[depth][i].ninjas[0].x << " " << currentState[depth][i].getSoul << " " << currentState[depth][i].survive[0] << endl;
+      cerr <<  currentState[depth][i].ninjas[0].y << " " << currentState[depth][i].ninjas[0].x << " " << currentState[depth][i].getSoul << " " << currentState[depth][i].survive[0] << endl;
       if (skillId != -1){//use skill
 	if (skillId == 3){
 	  cout << 3 << endl;
