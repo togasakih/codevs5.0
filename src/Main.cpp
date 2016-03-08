@@ -204,6 +204,28 @@ public:
   Search(int x, int y, int dist): Point(x, y), dist(dist) {}
 };
 
+class Order{
+public:
+  int comId;
+  int skillId;
+  Point targetPoint;
+  Order(){
+    comId = -1;
+    skillId = -1;
+    targetPoint = Point(-1, -1);
+  }
+  Order(int comId, int skillId, int x, int y):comId(comId),skillId(skillId),targetPoint(x, y){}
+  void setOrder(int id){
+    comId = id;
+  }
+  void setSkill(int id){
+    skillId = id;
+  }
+  void setTargetPoint(int x, int y){
+    targetPoint = Point(x, y);
+  }
+};
+
 
 int remTime;
 vector<Skill> skills;
