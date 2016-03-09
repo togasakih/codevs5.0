@@ -86,7 +86,7 @@ public:
   double searchValue;
   int getSoul;
   //  bool fail;
-  vector<int> commandId;
+  int commandId;
   vector<int> minDistSoulById;
   int rivalSkillPoint;
   
@@ -117,7 +117,7 @@ public:
     searchValue = 0;
     getSoul = 0;
     //    fail = false;
-    commandId.clear();
+    commandId = -1;
     minDistSoulById.clear();
     rivalSkillPoint = 0;
     skillUseId = -1;
@@ -493,16 +493,17 @@ vector<Order> possibleOrder(const State& nowState, int depth, bool useSpecialSki
 	result.push_back(nowOrder);
       }
 
-      if (depth == 0){
+      if (depth == 0 || depth == 1){
 	if (!useSpecialSkill){
 	  //2
 	  useLightning(nowState, nowOrder, result);
 	  //5
-	  useShadowClone(nowState, nowOrder, result);
+	  //useShadowClone(nowState, nowOrder, result);
 	}
-
 	//7
 	if (useSpecialSkill){
+	  	  //2
+	  useLightning(nowState, nowOrder, result);
 	  for (int id = 0; id < 2; id++){
 	    useWhirlslash(nowState, id, nowOrder,result);
 	  }
@@ -854,7 +855,7 @@ void showState(const vector<State> &currentState){
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
 void think(int depthLimit, int beamWidth=10) {
-  vector<State> currentState[depthLimit + 2];
+  vector<State> currentState[depthLimit + 1];
   currentState[0].push_back(myState);
   //depth 0
   bool useSpecialSkill = false;
@@ -864,20 +865,18 @@ void think(int depthLimit, int beamWidth=10) {
     if (currentState[depth].size() > beamWidth){
       sort(currentState[depth].rbegin(), currentState[depth].rend());
       currentState[depth].erase(currentState[depth].begin() + beamWidth, currentState[depth].end());
-      currentState[depth].shrink_to_fit();
+      //      currentState[depth].shrink_to_fit();
     }
-    //    cerr << currentState[depth].size() << endl;
-    for (int k = 0; k < currentState[depth].size(); k++){
 
+    for (int k = 0; k < currentState[depth].size(); k++){
       vector<Order> myOrders = possibleOrder(currentState[depth][k], depth, useSpecialSkill);
       vector<Attack> rivalAttacks;
-      if (depth == 0){
+      if (depth < 2){
 	rivalAttacks = possibleAttack(currentState[depth][k], rivalState);
       }else{
 	rivalAttacks.push_back(Attack());
       }
-
-
+      //      cerr <<currentState[depth].size() << " " << myOrders.size() << " " << rivalAttacks.size() << endl;
       for (int i = 0; i < myOrders.size(); i++){
 	int survive = 1;
 	int comId = myOrders[i].comId;
@@ -926,12 +925,14 @@ void think(int depthLimit, int beamWidth=10) {
 	  }
 	}
 	if (survive == 1 || survive == -1 || currentState[depth + 1].empty()){
-	  if (currentState[depth + 1].size() >= beamWidth){
-	    if (survive != 1)continue;
-	  }
+	  // if (currentState[depth + 1].size() >= beamWidth){
+	  //   if (survive != 1)continue;
+	  // }
 	  State nextState = currentState[depth][k];
-	  //	  simulateDefence(nextState, skillUseId, skillId, targetPoint);	  
-	  nextState.commandId.push_back(comId);
+	  //	  simulateDefence(nextState, skillUseId, skillId, targetPoint);
+	  if (nextState.commandId == -1){
+	    nextState.commandId = comId;
+	  }
 	  nextState.survive.push_back(survive);
 	  if (skillId != -1){
 	    nextState.skillUseId = skillUseId;
@@ -942,31 +943,29 @@ void think(int depthLimit, int beamWidth=10) {
 	  genNextState(nextState, commands[comId]);//survive
 	  simulateNextDog(nextState, depth);
 
-	  
 	  calculateMinDistToSoul(nextState);
 	  calculateHammingDistance(nextState);
-	  //	  checkReachDeath(nextState);
 	  currentState[depth + 1].push_back(nextState);
 	}
       NextOrder:;
       }
     }
-    currentState[depth].clear();
-    // if (depth == 0 && !useSpecialSkill){
-    //   sort(currentState[depth + 1].rbegin(), currentState[depth + 1].rend());
-    //   if (currentState[depth + 1].empty() || currentState[depth + 1][0].survive[0] != 1){//use special skill
-    // 	currentState[depth + 1].clear();
-    // 	useSpecialSkill = true;
-    // 	depth -= 1;
-    //   }
-    // }
+    //    currentState[depth].clear();
+    if (depth == 0 && !useSpecialSkill){
+      sort(currentState[depth + 1].rbegin(), currentState[depth + 1].rend());
+      if (currentState[depth + 1].empty() || currentState[depth + 1][0].survive[0] != 1){//use special skill
+    	currentState[depth + 1].clear();
+    	useSpecialSkill = true;
+    	depth -= 1;
+      }
+    }
   }
 
   for (int depth = depthLimit; depth >= 1; depth--){
     sort(currentState[depth].rbegin(), currentState[depth].rend());
     //    cerr << currentState[depth].size() << endl;
     for (int i = 0; i < currentState[depth].size(); i++){
-      int comId = currentState[depth][i].commandId[0];
+      int comId = currentState[depth][i].commandId;
       int skillUseId = currentState[depth][i].skillUseId;
       int skillId = currentState[depth][i].skillId;
       int tarX = currentState[depth][i].targetPoint.x;
@@ -1037,7 +1036,7 @@ int main() {
   cout.flush();
   commands = createCommands();
   while (input()) {
-    think(3);
+    think(2);
     cout.flush();
   }
 
