@@ -483,13 +483,14 @@ vector<Order> possibleOrder(const State& nowState, int depth, bool useSpecialSki
   vector<Order> result;
   Order nowOrder;
 
-
-    for (int i = 0; i < commands.size(); i++){
+  //  cerr << "commands.size() = "  << commands.size() << " " << useSpecialSkill << " " << result.size() << endl;
+  for (int i = 0; i < commands.size(); i++){
       nowOrder.setOrder(i);
       if (validateOrder(nowState, i, -1)){
-	result.push_back(nowOrder);
+	if (!useSpecialSkill){
+	  result.push_back(nowOrder);
+	}
       }
-
       if (depth == 0 || depth == 1){
 	if (!useSpecialSkill){
 	  //2
@@ -497,20 +498,23 @@ vector<Order> possibleOrder(const State& nowState, int depth, bool useSpecialSki
 	  //5
 
 	}
+	
 	//7
 	if (useSpecialSkill){
 	  //2
+
 	  useLightning(nowState, nowOrder, result);
+
+
 	  useShadowClone(nowState, nowOrder, result);
 	  //	  useLightning(nowState, nowOrder, result);
 	  for (int id = 0; id < 2; id++){
 	    useWhirlslash(nowState, id, nowOrder,result);
 	  }
-	  
 	}
       }
     }
-
+  //  cerr << result.size() << endl;
   return result;
 }
 
@@ -818,13 +822,14 @@ void showState(const vector<State> &currentState){
  * -- 「超高速」のみを使用します。
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
-void think(int depthLimit, int beamWidth=30) {
+void think(int depthLimit, int beamWidth=5) {
   vector<State> currentState[depthLimit + 1];
   currentState[0].push_back(myState);
   //depth 0
 
   set<int> tabooCommands;
-  int cntChallenge = 0;  
+  int cntChallenge = 0;
+
   for (int depth = 0; depth < depthLimit; depth++){
 
     if (currentState[depth].size() > beamWidth){
@@ -832,9 +837,11 @@ void think(int depthLimit, int beamWidth=30) {
       currentState[depth].erase(currentState[depth].begin() + beamWidth, currentState[depth].end());
     }
     cntChallenge++;
-    //    cerr << depth << " " << k << " " << cntChallenge << endl;      
+    //    cerr << depth << " " << cntChallenge << endl;          
     for (int k = 0; k < currentState[depth].size(); k++){
+      
       vector<Order> myOrders = possibleOrder(currentState[depth][k], depth, cntChallenge >= 2);
+      //      cerr << "POS" << endl;      
       vector<Attack> rivalAttacks;
       if (depth < 2){
 	rivalAttacks = possibleAttack(currentState[depth][k], rivalState);
@@ -842,7 +849,7 @@ void think(int depthLimit, int beamWidth=30) {
 	rivalAttacks.push_back(Attack());
       }
 
-      //      cerr <<currentState[depth].size() << " " << myOrders.size() << " " << rivalAttacks.size() << endl;
+      //cerr <<currentState[depth].size() << " " << myOrders.size() << " " << rivalAttacks.size() << endl;
       for (int i = 0; i < myOrders.size(); i++){
 	int survive = 1;
 	int comId = myOrders[i].comId;
@@ -933,6 +940,7 @@ void think(int depthLimit, int beamWidth=30) {
     }
     //    cerr << "Done!!!!" << endl;
     cntChallenge = 0;
+
   }
 
   for (int depth = depthLimit; depth >= 1; depth--){
