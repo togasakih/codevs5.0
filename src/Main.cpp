@@ -312,9 +312,10 @@ void useShadowClone(const State& nowState, const Order &order, vector<Order> &re
       for (int x = -1; x <= 1; x++){
 	int ny = y + py;
 	int nx = x + px;
+
 	if (!nowState.field[ny][nx].isEmpty())continue;
 	next.setSkill(5);
-	next.setTargetPoint(nx, nx);
+	next.setTargetPoint(nx, ny);
 	result.emplace_back(next);
       }
     }
