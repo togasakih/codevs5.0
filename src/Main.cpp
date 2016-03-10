@@ -218,24 +218,13 @@ public:
     if (getSoul > right.getSoul){
       return false;
     }
-    
-
-    if(minDistSoulById[0] + minDistSoulById[1] ==  right.minDistSoulById[0] + right.minDistSoulById[1]){
-
-      if (hammingDistance < right.hammingDistance){
+    if (minDistSoulById[0] + minDistSoulById[1] == right.minDistSoulById[0] + right.minDistSoulById[1]){
+      if (skillPoint < right.skillPoint){
 	return true;
       }
-      if (hammingDistance > right.hammingDistance){
+      if (skillPoint > right.skillPoint){
 	return false;
       }
-      if (stepNum < right.stepNum){
-	return true;
-      }
-      if (stepNum > right.stepNum){
-	return false;
-      }
-
-      return skillPoint < right.skillPoint;
     }
     return minDistSoulById[0] + minDistSoulById[1] > right.minDistSoulById[0] + right.minDistSoulById[1];
   }
@@ -420,11 +409,38 @@ void attackFallRock(const State& myState, const State& rivalState, vector<Attack
   }
   return ;
 }
+
+void attackShadowClone(const State& myState, const State& rivalState, vector<Attack> &result){
+  if (rivalState.skillPoint < skills[6].cost){
+    return ;
+  }
+  for (int id = 0; id < 2; id++){
+    int px = myState.ninjas[id].x;
+    int py = myState.ninjas[id].y;
+    for (int y = -2; y <= 2; y++){
+      for (int x = -2; x <= 2; x++){
+	int nx = px + x;
+	int ny = py + y;
+	if (nx <= 0 || nx >= myState.W - 1 || ny <= 0 || ny >= myState.H - 1){
+	  continue;
+	}
+	if (!myState.field[ny][nx].isEmpty()){
+	  continue;
+	}
+	Attack attack;
+	attack.setSkill(6, Point(nx, ny));
+	result.push_back(attack);
+      }
+    }
+  }
+  return ;
+}
+
 vector<Attack> possibleAttack(const State& myState, const State& rivalState){
   vector<Attack> result;
   result.push_back(Attack());//None
   attackFallRock(myState, rivalState, result);
-  
+  attackShadowClone(myState, rivalState, result);
   return result;
 }
 bool validateOrder(const State& nowState, int comId, int skillId){
@@ -822,7 +838,7 @@ void showState(const vector<State> &currentState){
  * -- 「超高速」のみを使用します。
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
-void think(int depthLimit, int beamWidth=5) {
+void think(int depthLimit, int beamWidth=50) {
   vector<State> currentState[depthLimit + 1];
   currentState[0].push_back(myState);
   //depth 0
@@ -843,13 +859,13 @@ void think(int depthLimit, int beamWidth=5) {
       vector<Order> myOrders = possibleOrder(currentState[depth][k], depth, cntChallenge >= 2);
       //      cerr << "POS" << endl;      
       vector<Attack> rivalAttacks;
-      if (depth < 2){
+      if (depth < 1){
 	rivalAttacks = possibleAttack(currentState[depth][k], rivalState);
       }else{
 	rivalAttacks.push_back(Attack());
       }
 
-      //cerr <<currentState[depth].size() << " " << myOrders.size() << " " << rivalAttacks.size() << endl;
+      //      cerr <<currentState[depth].size() << " " << myOrders.size() << " " << rivalAttacks.size() << endl;
       for (int i = 0; i < myOrders.size(); i++){
 	int survive = 1;
 	int comId = myOrders[i].comId;
@@ -879,7 +895,7 @@ void think(int depthLimit, int beamWidth=5) {
 	  }
 
 	  if (tmp == 1){//survive
-	    if (skillId == 5){//use shadowClaone
+	    if (skillId == 5 || rivalAttacks[j].skillId == 5){//use shadowClaone
 	      simulateNextDog(nextState, myOrders[i], rivalAttacks[j]);
 	      for (int id = 0; id < 2; id++){
 	    	int x = nextState.ninjas[id].x;
@@ -902,14 +918,14 @@ void think(int depthLimit, int beamWidth=5) {
 	  }
 	}
 	
-	if (survive == 1 || survive == -1 ||currentState[depth + 1].empty()){
+	if (survive == 1 || (survive == -1 && depth > 0)){
 	  State nextState = currentState[depth][k];
 	  Attack nowAttack = Attack(skillRivalId, targetRivalPoint);
 	  simulateAttack(nextState, nowAttack);//defence
 	  simulateDefence(nextState, skillUseId, skillId, targetPoint);//defence
 	  genNextState(nextState, commands[comId], skillId == 5);//survive
 	  simulateNextDog(nextState, myOrders[i], nowAttack);//attack
-	  //simulateNextDog(nextState, depth);
+	
 	  nextState.survive.push_back(survive);
 	  if (depth == 0){
 	    nextState.commandId = comId;
@@ -960,8 +976,8 @@ void think(int depthLimit, int beamWidth=5) {
       int p2y = currentState[depth][i].ninjas[1].y;
 
       cerr << "comId = " << comId << " " << currentState[depth][i].survive[0] << endl;
-      // cout << "p1x = " << p1x << " " << "p1y = " << p1y << endl;
-      // cout << "p2x = " << p2x << " " << "p2y = " << p2y << endl;
+      cerr << "p1x = " << p1x << " " << "p1y = " << p1y << endl;
+      cerr << "p2x = " << p2x << " " << "p2y = " << p2y << endl;
 
       if (skillId != -1){//use skill
 	if (skillId == 3){
@@ -1028,7 +1044,7 @@ int main() {
   cout.flush();
   commands = createCommands();
   while (input()) {
-    think(3);
+    think(6);
     cout.flush();
   }
 
