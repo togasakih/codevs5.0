@@ -193,15 +193,15 @@ public:
 
   bool operator < (const State &right) const {
     
-    if (survive[0] == -1 && right.survive[0] == -1){//probably death
-      if (skillId != -1 && right.skillId == -1){
-	return false;
-      }
-      if (skillId == -1 && skillId != -1){
-	return true;
-      }
-    }
-    
+    // if (survive[0] == -1 && right.survive[0] == -1){//probably death
+    //   if (skillId != -1 && right.skillId == -1){
+    // 	return false;
+    //   }
+    //   if (skillId == -1 && skillId != -1){
+    // 	return true;
+    //   }
+    // }
+
     for (int i = 0; i < survive.size(); i++){
       if (survive[i] < right.survive[i]){
     	return true;
@@ -308,6 +308,11 @@ void useShadowClone(const State& nowState, const Order &order, vector<Order> &re
   for (int id = 0; id < 2; id++){
     int px = nowState.ninjas[id].x;
     int py = nowState.ninjas[id].y;
+    next.setSkill(5);
+    next.setTargetPoint(px, px);
+    result.push_back(next);
+
+
     //upper left;
     for (int y = py - 1; y >= 1; y--){
       for (int x = px - 1; x >= 1; x--){
@@ -362,22 +367,31 @@ void useLightning(const State& nowState, const Order &order, vector<Order> &resu
     return ;
   }
   Order next = order;
+  const vector<string> &com = commands[order.comId];
   for (int id = 0; id < 2; id++){
     int px = nowState.ninjas[id].x;
     int py = nowState.ninjas[id].y;
-    for (int y = -2; y <= 2; y++){
-      for (int x = -2; x <= 2; x++){
-	int lightX = px + x;
-	int lightY = py + y;
-	if (lightX <= 0 || lightX >= nowState.W - 1 || lightY <= 0 || lightY >= nowState.H - 1){
-	  continue;
-	}
-	if (!nowState.field[lightY][lightX].isObject())continue;
+    next.setTargetPoint(px, py);
+    for (int j = 0; j < 2; j++){
+        int nx = px + dx[com[id][j] - '0'];
+	int ny = py + dy[com[id][j] - '0'];
+	if (nowState.field[ny][nx].isWall())break;
 	next.setSkill(3);
-	next.setTargetPoint(lightX, lightY);
+	next.setTargetPoint(nx, ny);
 	result.push_back(next);
-      }
+
+	int nnx = px + 2 * dx[com[id][j] - '0'];
+	int nny = py + 2 * dy[com[id][j] - '0'];
+	if (nowState.field[nny][nnx].isWall())continue;
+
+	next.setSkill(3);
+	next.setTargetPoint(nnx, nny);
+	result.push_back(next);
+	
+	px = nx;
+	py = ny;
     }
+
   }
   return ;
 }
@@ -414,6 +428,7 @@ void attackShadowClone(const State& myState, const State& rivalState, vector<Att
   if (rivalState.skillPoint < skills[6].cost){
     return ;
   }
+  
   for (int id = 0; id < 2; id++){
     int px = myState.ninjas[id].x;
     int py = myState.ninjas[id].y;
@@ -421,6 +436,7 @@ void attackShadowClone(const State& myState, const State& rivalState, vector<Att
       for (int x = -2; x <= 2; x++){
 	int nx = px + x;
 	int ny = py + y;
+	if (abs(x) + abs(y) >= 3)continue;
 	if (nx <= 0 || nx >= myState.W - 1 || ny <= 0 || ny >= myState.H - 1){
 	  continue;
 	}
@@ -518,15 +534,13 @@ vector<Order> possibleOrder(const State& nowState, int depth, bool useSpecialSki
 	//7
 	if (useSpecialSkill){
 	  //2
-
 	  useLightning(nowState, nowOrder, result);
-
-
 	  useShadowClone(nowState, nowOrder, result);
 	  //	  useLightning(nowState, nowOrder, result);
 	  for (int id = 0; id < 2; id++){
 	    useWhirlslash(nowState, id, nowOrder,result);
 	  }
+	  
 	}
       }
     }
@@ -802,7 +816,10 @@ void simulateDefence(State& nowState, int skillUseId,int skillId, Point targetPo
       for (int x = -1; x <= 1; x++){
 	int nx = px + x;
 	int ny = py + y;
-	nowState.field[ny][nx].containsDog = false;
+	if (nowState.field[ny][nx].containsDog){
+	  nowState.field[ny][nx].containsDog = false;
+	  nowState.dogs.erase( find(nowState.dogs.begin(), nowState.dogs.end(), Point(nx, ny)) );
+	}
       }
     }
     return ;
@@ -838,7 +855,7 @@ void showState(const vector<State> &currentState){
  * -- 「超高速」のみを使用します。
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
-void think(int depthLimit, int beamWidth=50) {
+void think(int depthLimit, int beamWidth=30) {
   vector<State> currentState[depthLimit + 1];
   currentState[0].push_back(myState);
   //depth 0
@@ -895,7 +912,7 @@ void think(int depthLimit, int beamWidth=50) {
 	  }
 
 	  if (tmp == 1){//survive
-	    if (skillId == 5 || rivalAttacks[j].skillId == 5){//use shadowClaone
+	    if (skillId == 5 || rivalAttacks[j].skillId == 6){//use shadowClaone
 	      simulateNextDog(nextState, myOrders[i], rivalAttacks[j]);
 	      for (int id = 0; id < 2; id++){
 	    	int x = nextState.ninjas[id].x;
@@ -918,7 +935,7 @@ void think(int depthLimit, int beamWidth=50) {
 	  }
 	}
 	
-	if (survive == 1 || (survive == -1 && depth > 0)){
+	if (survive != -2){
 	  State nextState = currentState[depth][k];
 	  Attack nowAttack = Attack(skillRivalId, targetRivalPoint);
 	  simulateAttack(nextState, nowAttack);//defence
@@ -961,7 +978,7 @@ void think(int depthLimit, int beamWidth=50) {
 
   for (int depth = depthLimit; depth >= 1; depth--){
     sort(currentState[depth].rbegin(), currentState[depth].rend());
-    //    cerr << currentState[depth].size() << endl;
+    cerr << currentState[depth].size() << endl;
     for (int i = 0; i < currentState[depth].size(); i++){
       int comId = currentState[depth][i].commandId;
       int skillUseId = currentState[depth][i].skillUseId;
@@ -1044,7 +1061,7 @@ int main() {
   cout.flush();
   commands = createCommands();
   while (input()) {
-    think(6);
+    think(4);
     cout.flush();
   }
 
