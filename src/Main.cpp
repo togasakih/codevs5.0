@@ -653,7 +653,11 @@ void simulateNextDog(State &nowState, const Order &myOrder, const Attack& rivalA
     vector<vector<int> > dist(nowState.H, vector<int>(nowState.W, INF));
     vector<Point> targetNinjas;
     if (myOrder.skillId == 5){
-      targetNinjas.push_back(myOrder.targetPoint);
+      int x = myOrder.targetPoint.x;
+      int y = myOrder.targetPoint.y;
+      if (nowState.field[y][x].isEmpty()){
+	targetNinjas.push_back(myOrder.targetPoint);
+      }
     }
     if (rivalAttack.skillId == 6){
       targetNinjas.push_back(rivalAttack.targetPoint);
