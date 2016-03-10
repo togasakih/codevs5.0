@@ -369,7 +369,6 @@ next.setSkill(5);
       }
     }
   NextSegment4:;
-    
   }
   return ;
 }
@@ -567,6 +566,17 @@ void calculateMinDistToSoul(State &nowState){
 	  swap(field[nny][nnx].kind, field[ny][nx].kind);
 	}
 	if (field[ny][nx].containsSoul){
+	  if (field[ny][nx].isObject()){
+	    int cnt = 0;
+	    for (int i = 0; i < 4; i++){
+	      int nnx = nx + dx[dir];
+	      int nny = ny + dy[dir];
+	      if (!field[nny][nnx].isWall()){
+		cnt++;
+	      }
+	    }
+	    if (cnt == 2)continue;
+	  }
 	  nowState.minDistSoulById[id] = sc.dist + 1;
 	  goto NextId;
 	}
@@ -895,6 +905,7 @@ void think(int depthLimit, int beamWidth=5) {
 	//rival
 	Point targetRivalPoint = Point(-1, -1);
 	int skillRivalId = -1;
+	int skillRivalCost = skillRivalId >= 0 ? skills[skillRivalId].cost : 0;
 	for (int j = 0; j < rivalAttacks.size(); j++){
 	  State nextState = currentState[depth][k];
 	  simulateAttack(nextState, rivalAttacks[j]);
@@ -949,7 +960,8 @@ void think(int depthLimit, int beamWidth=5) {
 	    nextState.skillId = skillId;
 	    nextState.targetPoint = targetPoint;
 	  }
-	  nextState.skillPoint -= skillCost;	    
+	  nextState.skillPoint -= skillCost;
+	  nextState.rivalSkillPoint -= skillRivalCost;
 	  //	  cerr << skillRivalId << " " << targetRivalPoint.x << " " << targetRivalPoint.y << endl;
 	  
 	  //additional score
