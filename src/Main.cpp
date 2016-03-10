@@ -493,11 +493,11 @@ void possibleOrder(vector<Order> &result, const State& nowState, int depth, bool
 	  //2
 	  useLightning(nowState, nowOrder, result);
 	  //	  useLightning(nowState, nowOrder, result);
-	  if (skills[7].cost <= 8){
-	    for (int id = 0; id < 2; id++){
-	      useWhirlslash(nowState, id, nowOrder,result);
-	    }
+
+	  for (int id = 0; id < 2; id++){
+	    useWhirlslash(nowState, id, nowOrder,result);
 	  }
+
 	  
 	}
       }
