@@ -14,6 +14,15 @@ const char CELL_EMPTY = '_';
 const char CELL_WALL ='W';
 const char CELL_OBJECT = 'O';
 
+const int dx[] =    {  0,   1,   0,  -1,   0};
+const int dy[] =    { -1,   0,   1,   0,   0};
+const string ds[] = {"U", "R", "D", "L",  ""};
+//togasaki
+const int dogDx[] =    {  0,   -1,   1,  0,   0};//U L R D
+const int dogDy[] =    { -1,   0,   0,   1,   0};
+const int cornerX[] = {1, 12, 1, 12};
+const int cornerY[] = {1, 1, 15, 15};
+
 class Point {
 public:
   int x, y;
@@ -203,14 +212,34 @@ public:
       }
 
     }
-    
+
     if (getSoul < right.getSoul){
       return true;
     }
     if (getSoul > right.getSoul){
       return false;
     }
+    
+    // int sumP = INF;
+    // int sumQ = INF;
+    // for (int id = 0; id < 2; id++){
+    //   int px = ninjas[id].x;
+    //   int py = ninjas[id].y;
 
+    //   int qx = ninjas[id].x;
+    //   int qy = ninjas[id].y;
+    //   for (int i = 0; i < 4; i++){
+    // 	sumP = min(sumP, abs(px - cornerX[i]) + abs(py - cornerY[i]));
+    // 	sumQ = min(sumQ, abs(qx - cornerX[i]) + abs(qy - cornerY[i]));
+    //   }
+    // }
+    // if (sumP <= 5 && sumQ > 5){
+    //   return true;
+    // }
+    // if (sumP > 5 && sumQ <= 5){
+    //   return false;
+    // }
+    
     if (skillPoint < right.skillPoint){
       return true;
     }
@@ -285,12 +314,7 @@ int remTime;
 State myState;
 State rivalState;
 
-int dx[] =    {  0,   1,   0,  -1,   0};
-int dy[] =    { -1,   0,   1,   0,   0};
-string ds[] = {"U", "R", "D", "L",  ""};
-//togasaki
-int dogDx[] =    {  0,   -1,   1,  0,   0};//U L R D
-int dogDy[] =    { -1,   0,   0,   1,   0};
+
 vector<vector<string> > commands;
 void useShadowClone(const State& nowState, const Order &order, vector<Order> &result){
   if (nowState.skillPoint < skills[5].cost){
@@ -515,8 +539,9 @@ vector<vector<string> > createCommands(){
 }
 
 void calculateMinDistToSoul(State &nowState){
-
-  for (int id = 0; id < 2; id++){
+  vector<vector<int> > dist(nowState.H, vector<int>(nowState.W, INF));
+  int cnt = 0;
+  for (int id = 0; id < 1; id++){
     int sx = nowState.ninjas[id].x;
     int sy = nowState.ninjas[id].y;
     queue<Search> open;
@@ -541,25 +566,51 @@ void calculateMinDistToSoul(State &nowState){
 	  swap(field[nny][nnx].kind, field[ny][nx].kind);
 	}
 	if (field[ny][nx].containsSoul){
-	  if (field[ny][nx].isObject()){
-	    int cnt = 0;
-	    for (int i = 0; i < 4; i++){
-	      int nnx = nx + dx[dir];
-	      int nny = ny + dy[dir];
-	      if (!field[nny][nnx].isWall()){
-		cnt++;
-	      }
-	    }
-	    if (cnt == 2)continue;
+	  dist[ny][nx] = sc.dist;
+	  if (cnt == 0){
+	    nowState.minDistSoulById[id] = sc.dist;
 	  }
-	  nowState.minDistSoulById[id] = sc.dist + 1;
-	  goto NextId;
+	  cnt++;
 	}
 	closed[ny][nx] = true;
 	open.push(Search(nx, ny, sc.dist + 1));
       }
     }
-  NextId:;
+  }
+
+  for (int id = 1; id <= 1; id++){
+    int sx = nowState.ninjas[id].x;
+    int sy = nowState.ninjas[id].y;
+    queue<Search> open;
+    vector< vector<bool> > closed(nowState.H, vector<bool>(nowState.W, false));
+    vector< vector<Cell> > field = nowState.field;
+    closed[sy][sx] = true;
+    open.push(Search(sx, sy, 0));
+    while (!open.empty()){
+      Search sc = open.front();
+      open.pop();
+      if (!field[sy][sx].isEmpty())continue;
+      for (int dir = 0; dir < 4; dir++){
+	int nx = sc.x + dx[dir];
+	int ny = sc.y + dy[dir];
+	if (field[ny][nx].isWall())continue;
+	if (closed[ny][nx])continue;
+	if (field[ny][nx].containsDog)continue;
+	if (field[ny][nx].isObject()){
+	  int nnx = nx + dx[dir];
+	  int nny = ny + dy[dir];
+	  if (!field[nny][nnx].isEmpty())continue;
+	  swap(field[nny][nnx].kind, field[ny][nx].kind);
+	}
+	if (field[ny][nx].containsSoul && dist[ny][nx] > sc.dist + 1){
+	  dist[ny][nx] = sc.dist + 1;
+	  nowState.minDistSoulById[id] = sc.dist;
+	  return ;
+	}
+	closed[ny][nx] = true;
+	open.push(Search(nx, ny, sc.dist + 1));
+      }
+    }
   }
   return ;
 
@@ -850,16 +901,12 @@ bool pruningAttack(const State& nowState, const Order& nowOrder, const Attack& n
  * -- 「超高速」のみを使用します。
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
-void think(int depthLimit, int beamWidth=10) {
+void think(int depthLimit, int beamWidth=20) {
   vector<State> currentState[depthLimit + 1];
   currentState[0].emplace_back(myState);
   //depth 0
-
-  set<int> tabooCommands;
   int cntChallenge = 0;
-
   for (int depth = 0; depth < depthLimit; depth++){
-
     if (currentState[depth].size() > beamWidth){
       sort(currentState[depth].rbegin(), currentState[depth].rend());
       currentState[depth].erase(currentState[depth].begin() + beamWidth, currentState[depth].end());
