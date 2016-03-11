@@ -459,9 +459,8 @@ unsigned long xor128(void){
 }
 
 void possibleOrder(vector<Order> &result, const State& nowState, int depth, bool useSpecialSkill){
-
+  
   Order nowOrder;
-
   for (int i = 0; i < commands.size(); i++){
       nowOrder.setOrder(i);
       if (validateOrder(nowState, i, -1)){
@@ -474,11 +473,12 @@ void possibleOrder(vector<Order> &result, const State& nowState, int depth, bool
 	  //2
 	  //5
 	  useShadowClone(nowState, nowOrder, result);
+	  useLightning(nowState, nowOrder, result);
 	}
 	//7
 	if (useSpecialSkill){
 	  //2
-	  useLightning(nowState, nowOrder, result);
+
 	  //	  useLightning(nowState, nowOrder, result);
 	  for (int id = 0; id < 2; id++){
 	    useWhirlslash(nowState, id, nowOrder,result);
@@ -496,7 +496,7 @@ vector<vector<string> > createCommands(){
   vector<string> tmp;
   for (int i = 0; i < 5; i++){
     for (int j = 0; j < 5; j++){
-      if (i == 4 && j == 4)continue;
+      if (i == 4)break;
       string com = to_string(i) + to_string(j);
       tmp.emplace_back(com);
     }
@@ -929,23 +929,6 @@ void think(int depthLimit, int beamWidth=10) {
 	      }
 	    }
 	  }
-
-	  //debug
-	  // Point p = rivalAttacks[j].targetPoint;
-	  // if (rivalAttacks[j].skillId == 2 && p.x == 3 && p.y == 3){
-	  //   Point p0,p1;
-	  //   p0 = nextState.ninjas[0];
-	  //   p1 = nextState.ninjas[1];
-	  //   string tmp = commands[comId][1];
-	  //   string res = ds[tmp[0] - '0'] + ds[tmp[1] - '0'];
-	  //   //	    cerr << res << endl;
-	  //   if (targetPoint.y == 6 && targetPoint.x == 4 && res == "UU"){
-	 
-	  //     cerr << "Attack!!!! " << survive << " " << p0.y << " " << p0.x << " " << p1.y << " " << p1.x << endl;
-	  //     cerr << "SkillId = " << skillId << endl;
-	  //   }
-	  //   //	    assert(false);
-	  // }
 	  if (survive == -2)break;
 	}
 	
@@ -966,7 +949,6 @@ void think(int depthLimit, int beamWidth=10) {
 	  }
 	  nextState.skillPoint -= skillCost;
 	  nextState.rivalSkillPoint -= skillRivalCost;
-	  //	  cerr << skillRivalId << " " << targetRivalPoint.x << " " << targetRivalPoint.y << endl;
 	  
 	  //additional score
 	  calculateMinDistToSoul(nextState);
