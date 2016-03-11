@@ -220,24 +220,35 @@ public:
       return false;
     }
     
-    // int sumP = INF;
-    // int sumQ = INF;
+    // int cnt1 = 0;
+    // int cnt2 = 0;    
     // for (int id = 0; id < 2; id++){
     //   int px = ninjas[id].x;
     //   int py = ninjas[id].y;
-
-    //   int qx = ninjas[id].x;
-    //   int qy = ninjas[id].y;
     //   for (int i = 0; i < 4; i++){
-    // 	sumP = min(sumP, abs(px - cornerX[i]) + abs(py - cornerY[i]));
-    // 	sumQ = min(sumQ, abs(qx - cornerX[i]) + abs(qy - cornerY[i]));
+    // 	int nx = px + dx[i];
+    // 	int ny = py + dy[i];
+    // 	if (!field[ny][nx].isEmpty() || field[ny][nx].containsDog){
+    // 	  cnt1++;
+    // 	}
+    //   }
+    //   int qx = right.ninjas[id].x;
+    //   int qy = right.ninjas[id].y;
+    //   for (int i = 0; i < 4; i++){
+    // 	int nx = qx + dx[i];
+    // 	int ny = qy + dy[i];
+    // 	if (!right.field[ny][nx].isEmpty() || right.field[ny][nx].containsDog){
+    // 	  cnt2++;
+    // 	}
     //   }
     // }
-    // if (sumP <= 5 && sumQ > 5){
-    //   return true;
-    // }
-    // if (sumP > 5 && sumQ <= 5){
-    //   return false;
+    // if (cnt1 >= 4 || cnt2 >= 4){
+    //   if (cnt1 < cnt2){
+    // 	return false;
+    //   }
+    //   if (cnt1 > cnt2){
+    // 	return true;
+    //   }
     // }
     
     if (skillPoint < right.skillPoint){
@@ -316,26 +327,83 @@ State rivalState;
 
 
 vector<vector<string> > commands;
+void useShadowCloneFarthestPoint(const State &nowState, const Order &order, vector<Order> &result){
+  vector<vector<int> > dist(nowState.H, vector<int>(nowState.W, INF));
+  Order next = order;
+  int res = 0;
+  Point targetPoint(-1, -1);
+  for (int id = 0; id < 2; id++){
+    int sx = nowState.ninjas[id].x;
+    int sy = nowState.ninjas[id].y;
+    queue<Search> open;
+    vector< vector<bool> > closed(nowState.H, vector<bool>(nowState.W, false));
+    vector< vector<Cell> > field = nowState.field;
+    closed[sy][sx] = true;
+    dist[sy][sx] = 0;	
+    open.push(Search(sx, sy, 0));
+    while (!open.empty()){
+      Search sc = open.front();
+      open.pop();
+      if (!field[sy][sx].isEmpty())continue;
+      for (int dir = 0; dir < 4; dir++){
+	int nx = sc.x + dx[dir];
+	int ny = sc.y + dy[dir];
+	if (field[ny][nx].isWall())continue;
+	if (closed[ny][nx])continue;
+	closed[ny][nx] = true;
+	if (dist[ny][nx] > sc.dist + 1){
+	  dist[ny][nx] = sc.dist + 1;
+	  open.push(Search(nx, ny, sc.dist + 1));
+	}
+	if (id == 1 && res <= dist[ny][nx]){
+	  if (res == dist[ny][nx]){
+	    int resX = targetPoint.x;
+	    int resY = targetPoint.y;
+	    if (resY == ny){
+	      if (nx < resX){
+		res = dist[ny][nx];
+		targetPoint = Point(nx, ny);
+	      }
+	    }else if (ny < resY){
+	      res = dist[ny][nx];
+	      targetPoint = Point(nx, ny);
+	    }
+	  }else{
+	    res = dist[ny][nx];
+	    targetPoint = Point(nx, ny);
+	  }
+	}
+      }
+    }
+  }
+  next.setSkill(5);
+  next.setTargetPoint(targetPoint.x, targetPoint.y);
+  result.emplace_back(next);
+  return ;
+}
+
 void useShadowClone(const State& nowState, const Order &order, vector<Order> &result){
   if (nowState.skillPoint < skills[5].cost){
     return ;
   }
+  
   Order next = order;
   for (int id = 0; id < 2; id++){
     int px = nowState.ninjas[id].x;
     int py = nowState.ninjas[id].y;
     for (int y = -1; y <= 1; y++){
       for (int x = -1; x <= 1; x++){
-	int ny = y + py;
-	int nx = x + px;
-	//if (abs(x) + abs(y) > 2)continue;
-	if (!nowState.field[ny][nx].isEmpty())continue;
-	next.setSkill(5);
-	next.setTargetPoint(nx, ny);
-	result.emplace_back(next);
+  	int ny = y + py;
+  	int nx = x + px;
+  	//if (abs(x) + abs(y) > 2)continue;
+  	if (!nowState.field[ny][nx].isEmpty())continue;
+  	next.setSkill(5);
+  	next.setTargetPoint(nx, ny);
+  	result.emplace_back(next);
       }
     }
   }
+  useShadowCloneFarthestPoint(nowState, order, result);
   return ;
 }
 void useLightning(const State& nowState, const Order &order, vector<Order> &result){
@@ -901,7 +969,7 @@ bool pruningAttack(const State& nowState, const Order& nowOrder, const Attack& n
  * -- 「超高速」のみを使用します。
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
-void think(int depthLimit, int beamWidth=20) {
+void think(int depthLimit, int beamWidth=1) {
   vector<State> currentState[depthLimit + 1];
   currentState[0].emplace_back(myState);
   //depth 0
