@@ -453,7 +453,7 @@ void useLightning(const State& nowState, const Order &order, vector<Order> &resu
     int px = nowState.ninjas[id].x;
     int py = nowState.ninjas[id].y;
     for (int j = 0; j < 2; j++){
-      int comBit = (id == 0 ? (upperBit / pow5[j]) % pow5[1] : (lowerBit / pow5[j]) % pow5[1]);
+      int comBit = ((id == 0) ? (upperBit / pow5[j]) % pow5[1] : (lowerBit / pow5[j]) % pow5[1]);
       int nx = px + dx[comBit];
       int ny = py + dy[comBit];
 	if (nowState.field[ny][nx].isWall())break;
@@ -549,7 +549,7 @@ bool validateOrder(const State& nowState, int comId, int skillId){
     int nx = px;
     int ny = py;
     for (int i = 0; i < 2; i++){
-      int comBit = (id == 0 ? (upperBit / pow5[i]) % pow5[1] : (lowerBit / pow5[i]) % pow5[1]);
+      int comBit = ((id == 0) ? (upperBit / pow5[i]) % pow5[1] : (lowerBit / pow5[i]) % pow5[1]);
       nx += dx[comBit];
       ny += dy[comBit];
       if (nowState.field[ny][nx].isWall()){
@@ -841,7 +841,7 @@ int genNextState(State &nextState, int comId, bool shadow=false){
   for (int id = 0; id < 2; id++){
     
     for (int i = 0; i < 2; i++){
-      int comBit = (id == 0 ? (upperBit / pow5[i]) % pow5[1] : (lowerBit / pow5[i]) % pow5[1]);
+      int comBit = ((id == 0) ? (upperBit / pow5[i]) % pow5[1] : (lowerBit / pow5[i]) % pow5[1]);
       int px = nextState.ninjas[id].x;
       int py = nextState.ninjas[id].y;
       int nx = px + dx[comBit];
@@ -1003,7 +1003,7 @@ bool pruningAttack(const State& nowState, const Order& nowOrder, const Attack& n
     int px = nowState.ninjas[id].x;
     int py = nowState.ninjas[id].y;
     for (int j = 0; j < 2; j++){
-      int comBit = (id == 0 ? (upperBit / pow5[j]) % pow5[1] : (lowerBit / pow5[j]) % pow5[1]);  
+      int comBit = ((id == 0) ? (upperBit / pow5[j]) % pow5[1] : (lowerBit / pow5[j]) % pow5[1]);  
       int nx = px + dx[comBit];
       int ny = py + dy[comBit];
       if (abs(nx - targetX) + abs(ny - targetY) <= 2){
@@ -1199,7 +1199,7 @@ void think(int depthLimit, int beamWidth=50) {
 
 	for (int id = 0; id < 2; id++){
 	  for (int j = 0; j < 2; j++){
-	    int comBit = (id == 0 ? (upperBit / pow5[j]) % pow5[1] : (lowerBit / pow5[j]) % pow5[1]);
+	    int comBit = ((id == 0) ? (upperBit / pow5[j]) % pow5[1] : (lowerBit / pow5[j]) % pow5[1]);
 	    cout << ds[comBit];
 	  }
 	  cout << endl;
@@ -1215,7 +1215,7 @@ void think(int depthLimit, int beamWidth=50) {
 	cout << 2 << endl;
 	for (int id = 0; id < 2; id++){
 	  for (int j = 0; j < 2; j++){
-	    int comBit = (id == 0 ? (upperBit / pow5[j]) % pow5[1] : (lowerBit / pow5[j]) % pow5[1]);
+	    int comBit = ((id == 0) ? (upperBit / pow5[j]) % pow5[1] : (lowerBit / pow5[j]) % pow5[1]);
 	    cout << ds[comBit];
 	  }
 	  cout << endl;
