@@ -118,6 +118,7 @@ public:
   int hammingDistance;
   int stepNum;
   bool panicMode;
+  bool replNinjaMode;
   //  vector<Point> shadowNinjas;
   State() {
     skillPoint = H = W = -1;
@@ -147,6 +148,7 @@ public:
     hammingDistance = 0;
     stepNum = 0;
     panicMode = false;
+    replNinjaMode = false;
   }
 
   static State input(int numOfSkills) {
@@ -213,6 +215,7 @@ public:
 
   bool operator < (const State &right) const {
 
+    
     for (int i = 0; i < survive.size(); i++){
       if (survive[i] < right.survive[i]){
     	return true;
@@ -221,6 +224,18 @@ public:
     	return false;
       }
     }
+
+    //togasaki
+    //two ninjas are very closed
+    if (replNinjaMode && right.replNinjaMode){
+      if (hammingDistance < right.hammingDistance){
+	return true;
+      }
+      if (hammingDistance > right.hammingDistance){
+	return false;
+      }
+    }
+    
     if (getSoul < right.getSoul){
       return true;
     }
@@ -1018,7 +1033,7 @@ void simulateDefence(State& nowState, int skillUseId,int skillId, Point targetPo
   return ;
   
 }
-void calculateHammingDistance(State& state){
+int calculateHammingDistance(State& state){
   int px = state.ninjas[0].x;
   int py = state.ninjas[0].y;
   
@@ -1026,8 +1041,7 @@ void calculateHammingDistance(State& state){
   int qy = state.ninjas[1].y;
 
   state.hammingDistance = abs(px - qx) + abs(py - qy);
-
-  return ;
+  return state.hammingDistance;
 }
 void showState(const vector<State> &currentState){
   cerr << "-----------------------" << endl;
@@ -1157,17 +1171,14 @@ void think(int depthLimit, int beamWidth=50) {
   for (int depth = 0; depth < depthLimit; depth++){
     if (currentState[depth].size() > beamWidth){
       sort(currentState[depth].rbegin(), currentState[depth].rend());
-      if (depth == 1){
-	selectStateOnDiversity(currentState[depth], beamWidth);
-      }else{
-	currentState[depth].erase(currentState[depth].begin() + beamWidth, currentState[depth].end());
-      }
+      currentState[depth].erase(currentState[depth].begin() + beamWidth, currentState[depth].end());
     }
     cntChallenge++;
     //    cerr << depth << " " << cntChallenge << endl;          
     for (int k = 0; k < currentState[depth].size(); k++){
       vector<Order> myOrders;
       //      cerr << cntChallenge << endl;
+
       possibleOrder(myOrders,currentState[depth][k], depth, cntChallenge >= 2);
       vector<Attack> rivalAttacks;
       if (depth < 1){
@@ -1252,7 +1263,10 @@ void think(int depthLimit, int beamWidth=50) {
 	  
 	  //additional score
 	  calculateMinDistToSoul(nextState);
-	  //calculateHammingDistance(nextState);
+	  int hammingDistance = calculateHammingDistance(nextState);
+	  if (hammingDistance <= 5){
+	    nextState.replNinjaMode = true;
+	  }
 	  currentState[depth + 1].emplace_back(nextState);
 	}
       }
