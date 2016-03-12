@@ -413,6 +413,10 @@ void useShadowCloneCornerPoint(const State &nowState, const Order &order, vector
 
 }
 void useShadowCloneFarthestPoint(const State &nowState, const Order &order, vector<Order> &result){
+  if (nowState.skillPoint < skills[5].cost){
+    return ;
+  }
+
   //initboard
   initBoard(dist, INF);
   //  vector<vector<int> > dist(nowState.H, vector<int>(nowState.W, INF));
@@ -694,6 +698,7 @@ void possibleOrder(vector<Order> &result, const State& nowState, int depth, bool
 	  //5
 	  useShadowCloneFarthestPoint(nowState, nowOrder, result);
 	  useShadowCloneCornerPoint(nowState, nowOrder, result);
+
 	  useLightning(nowState, nowOrder, result);
 	}
 	//7
@@ -1163,7 +1168,7 @@ void selectStateOnDiversity(vector<State> &currentStates, int beamWidth){
  * -- 「超高速」のみを使用します。
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
-void think(int depthLimit, int beamWidth=50) {
+void think(int depthLimit, int beamWidth=300) {
   vector<State> currentState[depthLimit + 1];
   currentState[0].emplace_back(myState);
   //depth 0
