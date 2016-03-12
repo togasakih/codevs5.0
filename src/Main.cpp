@@ -1018,13 +1018,50 @@ bool pruningAttack(const State& nowState, const Order& nowOrder, const Attack& n
 }
 
 
-void selectState(vector<State> &currentState, int beamWidth){
-  for (int i = 0; i < currentState.size(); i++){
-    if (currentState[i].skillId == 3){
+void selectStateOnDiversity(vector<State> &currentStates, int beamWidth){
+  vector<bool> used(currentStates.size(), false);
+  vector<State> nextStates;
+  int cntLightning = beamWidth / 2 - 5;
+  int cntShadowClone = beamWidth / 2 - 5;
+  
+  for (int i = 0; i < 10; i++){
+    nextStates.push_back(currentStates[i]);
+    used[i] = true;
+    if (currentStates[i].skillId == 3){
+      cntLightning--;
     }
-
+    if (currentStates[i].skillId == 5){
+      cntShadowClone--;
+    }
   }
-
+  for (int i = 0; i < currentStates.size(); i++){
+    if (used[i])continue;
+    if (currentStates[i].skillId == 3){//lightning
+      if (cntLightning > 0){
+	nextStates.push_back(currentStates[i]);
+	used[i] = true;
+	cntLightning--;
+      }
+    }
+    if (currentStates[i].skillId == 5){
+      if (cntShadowClone > 0){
+	nextStates.push_back(currentStates[i]);
+	used[i] = true;
+	cntShadowClone--;
+      }
+    }
+  }
+  int index = 10;
+  while (nextStates.size() < beamWidth && index < currentStates.size()){
+    if (used[index]){
+      index++;
+      continue;
+    }
+    nextStates.push_back(currentStates[index]);
+    used[index] = true;
+    index++;
+  }
+  currentStates = nextStates;
   return ;
 }
 
@@ -1045,7 +1082,11 @@ void think(int depthLimit, int beamWidth=75) {
   for (int depth = 0; depth < depthLimit; depth++){
     if (currentState[depth].size() > beamWidth){
       sort(currentState[depth].rbegin(), currentState[depth].rend());
-      currentState[depth].erase(currentState[depth].begin() + beamWidth, currentState[depth].end());
+      if (depth == 1){
+	selectStateOnDiversity(currentState[depth], beamWidth);
+      }else{
+	currentState[depth].erase(currentState[depth].begin() + beamWidth, currentState[depth].end());
+      }
     }
     cntChallenge++;
     //    cerr << depth << " " << cntChallenge << endl;          
@@ -1150,7 +1191,7 @@ void think(int depthLimit, int beamWidth=75) {
     if (cntChallenge == 1){
       sort(currentState[depth + 1].rbegin(), currentState[depth + 1].rend());
       if (currentState[depth + 1].empty() || currentState[depth + 1][0].survive[depth] != 1){//use special skill
-	currentState[depth + 1].clear();
+	//	currentState[depth + 1].clear();
 	depth -= 1;
 	continue;
       }
