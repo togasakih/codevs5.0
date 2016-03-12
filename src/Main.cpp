@@ -212,12 +212,7 @@ public:
   }
 
   bool operator < (const State &right) const {
-    // if (panicMode && !right.panicMode){
-    //   return false;
-    // }
-    // if (!panicMode && right.panicMode){
-    //   return true;
-    // }
+
     for (int i = 0; i < survive.size(); i++){
       if (survive[i] < right.survive[i]){
     	return true;
@@ -225,38 +220,7 @@ public:
       if (survive[i] > right.survive[i]){
     	return false;
       }
-
     }
-
-    
-    // if (panicMode && right.panicMode){
-    //   int sum1 = 0;
-    //   for (int id = 0; id < 2; id++){
-    // 	int px = ninjas[id].x;
-    // 	int py = ninjas[id].y;
-    // 	int dist = INF;
-    // 	for (int k = 0; k < 4; k++){
-    // 	  dist = min(dist, abs(px - cornerX[k]) + abs(py - cornerY[k]));
-    // 	}
-    // 	sum1 += dist;
-    //   }
-    //   int sum2 = 0;
-    //   for (int id = 0; id < 2; id++){
-    // 	int px = right.ninjas[id].x;
-    // 	int py = right.ninjas[id].y;
-    // 	int dist = INF;
-    // 	for (int k = 0; k < 4; k++){
-    // 	  dist = min(dist, abs(px - cornerX[k]) + abs(py - cornerY[k]));
-    // 	}
-    // 	sum2 += dist;
-    //   }
-    //   if (sum1 < sum2){
-    // 	return true;
-    //   }
-    //   if (sum1 > sum2){
-    // 	return false;
-    //   }
-    // }
     if (getSoul < right.getSoul){
       return true;
     }
@@ -376,7 +340,63 @@ void checkPanicMode(State &nowState){
   }
   return ;
 }
+void useShadowCloneCornerPoint(const State &nowState, const Order &order, vector<Order> &result){
+  if (nowState.skillPoint < skills[5].cost){
+    return ;
+  }
+  Order next = order;
+  for (int id = 0; id < 2; id++){
+    int px = nowState.ninjas[id].x;
+    int py = nowState.ninjas[id].y;
+    //upper left;
+    for (int y = py - 1; y >= 1; y--){
+      for (int x = px - 1; x >= 1; x--){
+	if (nowState.field[y][x].isWall() || nowState.field[y][x].isObject())continue;
+	next.setSkill(5);
+	next.setTargetPoint(x, y);
+	result.push_back(next);
+	goto NextSegment1;
+      }
+    }
+  NextSegment1:;
+    //upper right
+    for (int y = py - 1; y >= 1; y--){
+      for (int x = px + 1; x < nowState.W - 1; x++){
+	if (nowState.field[y][x].isWall() || nowState.field[y][x].isObject())continue;
+	next.setSkill(5);
+	next.setTargetPoint(x, y);
+	result.push_back(next);
+	goto NextSegment2;
+      }
+    }
+  NextSegment2:;
 
+    //lower left
+    for (int y = py + 1; y < nowState.H - 1; y++){
+      for (int x = px - 1; x >= 1; x--){
+	if (nowState.field[y][x].isWall() || nowState.field[y][x].isObject())continue;
+	next.setSkill(5);
+	next.setTargetPoint(x, y);
+	result.push_back(next);
+	goto NextSegment3;
+      }
+    }
+  NextSegment3:;
+    //lower right
+    for (int y = py + 1; y < nowState.H - 1; y++){
+      for (int x = px + 1; x < nowState.W - 1; x++){
+	if (nowState.field[y][x].isWall() || nowState.field[y][x].isObject())continue;
+	next.setSkill(5);
+	next.setTargetPoint(x, y);
+	result.push_back(next);
+	goto NextSegment4;
+      }
+    }
+  NextSegment4:;
+  }
+  return ;
+
+}
 void useShadowCloneFarthestPoint(const State &nowState, const Order &order, vector<Order> &result){
   //initboard
   initBoard(dist, INF);
@@ -449,7 +469,6 @@ void useShadowClone(const State& nowState, const Order &order, vector<Order> &re
       for (int x = -1; x <= 1; x++){
   	int ny = y + py;
   	int nx = x + px;
-  	//if (abs(x) + abs(y) > 2)continue;
   	if (!nowState.field[ny][nx].isEmpty())continue;
   	next.setSkill(5);
   	next.setTargetPoint(nx, ny);
@@ -457,7 +476,7 @@ void useShadowClone(const State& nowState, const Order &order, vector<Order> &re
       }
     }
   }
-  useShadowCloneFarthestPoint(nowState, order, result);
+
   return ;
 }
 void useLightning(const State& nowState, const Order &order, vector<Order> &result){
@@ -650,28 +669,29 @@ void possibleOrder(vector<Order> &result, const State& nowState, int depth, bool
   Order nowOrder;
   for (int i = 0; i < commands.size(); i++){
       nowOrder.setOrder(i);
-      if (validateOrder(nowState, i, -1)){
+      // if (validateOrder(nowState, i, -1)){
 
-	result.emplace_back(nowOrder);
-
-      }
+      // }
+      result.emplace_back(nowOrder);
       if (depth == 0 || useSpecialSkill){
 	if (!useSpecialSkill){
 	  //2
 	  //5
-	  useShadowClone(nowState, nowOrder, result);
+	  useShadowCloneFarthestPoint(nowState, nowOrder, result);
+	  useShadowCloneCornerPoint(nowState, nowOrder, result);
 	  useLightning(nowState, nowOrder, result);
 	}
 	//7
 	if (useSpecialSkill){
 	  //2
+	  useShadowClone(nowState, nowOrder, result);
 	  for (int id = 0; id < 2; id++){
 	    useWhirlslash(nowState, id, nowOrder,result);
 	  }
 	}
       }
     }
-  //  cerr << result.size() << endl;
+
   return ;
 }
 
@@ -1007,7 +1027,6 @@ void calculateHammingDistance(State& state){
 
   state.hammingDistance = abs(px - qx) + abs(py - qy);
 
-
   return ;
 }
 void showState(const vector<State> &currentState){
@@ -1120,6 +1139,7 @@ void selectStateOnDiversity(vector<State> &currentStates, int beamWidth){
   return ;
 }
 
+
 /*
  * このAIについて
  * - 各忍者について、 thinkByNinja(id) を2回行います。
@@ -1129,7 +1149,7 @@ void selectStateOnDiversity(vector<State> &currentStates, int beamWidth){
  * -- 「超高速」のみを使用します。
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
-void think(int depthLimit, int beamWidth=400) {
+void think(int depthLimit, int beamWidth=50) {
   vector<State> currentState[depthLimit + 1];
   currentState[0].emplace_back(myState);
   //depth 0
@@ -1170,7 +1190,7 @@ void think(int depthLimit, int beamWidth=400) {
 	int skillRivalCost = skillRivalId >= 0 ? skills[skillRivalId].cost : 0;
 	for (int j = 0; j < rivalAttacks.size(); j++){
 	  State nextState = currentState[depth][k];
-	  //	  checkPanicMode(nextState);
+
 	  if (pruningAttack(nextState, myOrders[i], rivalAttacks[j])){
 	     continue;
 	  }
@@ -1211,10 +1231,6 @@ void think(int depthLimit, int beamWidth=400) {
 	  }
 	  if (survive == -2)break;
 	}
-	// if (depth == 0 && skillId == 5 && targetPoint.y == 3 && targetPoint.x == 4){
-	//   cerr << survive << endl;
-	    
-	// }
 	if (survive != -2){
 
 	  State nextState = currentState[depth][k];
