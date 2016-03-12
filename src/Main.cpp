@@ -1037,7 +1037,7 @@ void selectState(vector<State> &currentState, int beamWidth){
  * -- 「超高速」のみを使用します。
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
-void think(int depthLimit, int beamWidth=50) {
+void think(int depthLimit, int beamWidth=75) {
   vector<State> currentState[depthLimit + 1];
   currentState[0].emplace_back(myState);
   //depth 0
@@ -1150,7 +1150,7 @@ void think(int depthLimit, int beamWidth=50) {
     if (cntChallenge == 1){
       sort(currentState[depth + 1].rbegin(), currentState[depth + 1].rend());
       if (currentState[depth + 1].empty() || currentState[depth + 1][0].survive[depth] != 1){//use special skill
-	//	currentState[depth + 1].clear();
+	currentState[depth + 1].clear();
 	depth -= 1;
 	continue;
       }
