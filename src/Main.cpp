@@ -119,7 +119,13 @@ public:
   int stepNum;
   bool panicMode;
   bool replNinjaMode;
-  //  vector<Point> shadowNinjas;
+
+  int preNinjaX0;
+  int preNinjaY0;
+
+  int preNinjaX1;
+  int preNinjaY1;
+  int hammingPreDistance;
   State() {
     skillPoint = H = W = -1;
     field.clear();
@@ -146,9 +152,15 @@ public:
     survive.clear();
     reachDeath = 0;
     hammingDistance = 0;
-    stepNum = 0;
+
     panicMode = false;
     replNinjaMode = false;
+
+    preNinjaX0 = -1;
+    preNinjaY0 = -1;
+    preNinjaX1 = -1;
+    preNinjaY1 = -1;
+    hammingPreDistance = 0;
   }
 
   static State input(int numOfSkills) {
@@ -180,6 +192,13 @@ public:
     for (int i = 0; i < numOfNinjas; i++) {
       Character ninja = Character::input();
       st.ninjas.emplace_back(ninja);
+      if (i == 0){
+	st.preNinjaX0 = ninja.x;
+	st.preNinjaY0 = ninja.y;
+      }else{
+	st.preNinjaX1 = ninja.x;
+	st.preNinjaY1 = ninja.y;
+      }
       st.minDistSoulById.emplace_back(INF);
       st.field[ninja.y][ninja.x].containsNinja = true;
     }
@@ -250,8 +269,12 @@ public:
       return false;
     }
     if (minDistSoulById[0] + minDistSoulById[1] ==  right.minDistSoulById[0] + right.minDistSoulById[1]){
-      return stepNum < right.stepNum;
-      
+      if (hammingPreDistance < right.hammingPreDistance){
+	return true;
+      }
+      if (hammingPreDistance > right.hammingPreDistance){
+	return false;
+      }
     }
     return minDistSoulById[0] + minDistSoulById[1] > right.minDistSoulById[0] + right.minDistSoulById[1];
   }
@@ -360,12 +383,14 @@ void useShadowCloneCornerPoint(const State &nowState, const Order &order, vector
     return ;
   }
   Order next = order;
+  int H = nowState.H;
+  int W = nowState.W;
   for (int id = 0; id < 2; id++){
     int px = nowState.ninjas[id].x;
     int py = nowState.ninjas[id].y;
     //upper left;
-    for (int y = py - 1; y >= 1; y--){
-      for (int x = px - 1; x >= 1; x--){
+    for (int y = H - 2; y >= 1; y--){
+      for (int x = W - 2; x >= 1; x--){
 	if (nowState.field[y][x].isWall() || nowState.field[y][x].isObject())continue;
 	next.setSkill(5);
 	next.setTargetPoint(x, y);
@@ -375,8 +400,8 @@ void useShadowCloneCornerPoint(const State &nowState, const Order &order, vector
     }
   NextSegment1:;
     //upper right
-    for (int y = py - 1; y >= 1; y--){
-      for (int x = px + 1; x < nowState.W - 1; x++){
+    for (int y = H - 2; y >= 1; y--){
+      for (int x = 1; x < nowState.W - 1; x++){
 	if (nowState.field[y][x].isWall() || nowState.field[y][x].isObject())continue;
 	next.setSkill(5);
 	next.setTargetPoint(x, y);
@@ -387,8 +412,8 @@ void useShadowCloneCornerPoint(const State &nowState, const Order &order, vector
   NextSegment2:;
 
     //lower left
-    for (int y = py + 1; y < nowState.H - 1; y++){
-      for (int x = px - 1; x >= 1; x--){
+    for (int y = 1; y < nowState.H - 1; y++){
+      for (int x = W - 1; x >= 1; x--){
 	if (nowState.field[y][x].isWall() || nowState.field[y][x].isObject())continue;
 	next.setSkill(5);
 	next.setTargetPoint(x, y);
@@ -398,8 +423,8 @@ void useShadowCloneCornerPoint(const State &nowState, const Order &order, vector
     }
   NextSegment3:;
     //lower right
-    for (int y = py + 1; y < nowState.H - 1; y++){
-      for (int x = px + 1; x < nowState.W - 1; x++){
+    for (int y = 1; y < nowState.H - 1; y++){
+      for (int x = 1; x < nowState.W - 1; x++){
 	if (nowState.field[y][x].isWall() || nowState.field[y][x].isObject())continue;
 	next.setSkill(5);
 	next.setTargetPoint(x, y);
@@ -410,7 +435,6 @@ void useShadowCloneCornerPoint(const State &nowState, const Order &order, vector
   NextSegment4:;
   }
   return ;
-
 }
 void useShadowCloneFarthestPoint(const State &nowState, const Order &order, vector<Order> &result){
   if (nowState.skillPoint < skills[5].cost){
@@ -615,7 +639,7 @@ void possibleAttack(vector<Attack> &result, const State& myState, const State& r
   result.emplace_back(Attack());//None
   if (!checkReachDeath(myState, rivalState))return ;
   attackFallRock(myState, rivalState, result);
-  attackShadowClone(myState, rivalState, result);
+  //  attackShadowClone(myState, rivalState, result);
   return ;
 }
 bool validateOrder(const State& nowState, int comId, int skillId){
@@ -688,17 +712,15 @@ void possibleOrder(vector<Order> &result, const State& nowState, int depth, bool
   Order nowOrder;
   for (int i = 0; i < commands.size(); i++){
       nowOrder.setOrder(i);
-      // if (validateOrder(nowState, i, -1)){
-
-      // }
-      result.emplace_back(nowOrder);
+      if (validateOrder(nowState, i, -1)){
+	result.emplace_back(nowOrder);
+      }
       if (depth == 0 || useSpecialSkill){
 	if (!useSpecialSkill){
 	  //2
 	  //5
 	  useShadowCloneFarthestPoint(nowState, nowOrder, result);
 	  useShadowCloneCornerPoint(nowState, nowOrder, result);
-
 	  useLightning(nowState, nowOrder, result);
 	}
 	//7
@@ -1038,7 +1060,35 @@ void simulateDefence(State& nowState, int skillUseId,int skillId, Point targetPo
   return ;
   
 }
+
+int calculateHammingPreDistance(State& state){
+  
+  int px = state.ninjas[0].x;
+  int py = state.ninjas[0].y;
+  int ppx = state.preNinjaX0;
+  int ppy = state.preNinjaY0;
+
+  
+  int pqx = state.preNinjaX1;
+  int pqy = state.preNinjaY1;
+  int qx = state.ninjas[1].x;
+  int qy = state.ninjas[1].y;
+  state.hammingPreDistance = abs(px - ppx) + abs(py - ppy) + abs(qx - pqx) + abs(qy - pqy);
+  return state.hammingPreDistance;
+}
+
 int calculateHammingDistance(State& state){
+  
+  int px = state.ninjas[0].x;
+  int py = state.ninjas[0].y;
+
+  int qx = state.ninjas[1].x;
+  int qy = state.ninjas[1].y;
+  state.hammingDistance = abs(px - qx) + abs(py - qy);
+  return state.hammingDistance;
+}
+
+int calculateHammingNinjasDistance(State& state){
   int px = state.ninjas[0].x;
   int py = state.ninjas[0].y;
   
@@ -1144,7 +1194,7 @@ void selectStateOnDiversity(vector<State> &currentStates, int beamWidth){
       }
     }
   }
-  int index = 10;
+  int index = 0;
   while (nextStates.size() < beamWidth && index < currentStates.size()){
     if (used[index]){
       index++;
@@ -1168,7 +1218,7 @@ void selectStateOnDiversity(vector<State> &currentStates, int beamWidth){
  * -- 「超高速」のみを使用します。
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
-void think(int depthLimit, int beamWidth=300) {
+void think(int depthLimit, int beamWidth=100) {
   vector<State> currentState[depthLimit + 1];
   currentState[0].emplace_back(myState);
   //depth 0
@@ -1176,6 +1226,7 @@ void think(int depthLimit, int beamWidth=300) {
   for (int depth = 0; depth < depthLimit; depth++){
     if (currentState[depth].size() > beamWidth){
       sort(currentState[depth].rbegin(), currentState[depth].rend());
+      selectStateOnDiversity(currentState[depth], beamWidth);
       currentState[depth].erase(currentState[depth].begin() + beamWidth, currentState[depth].end());
     }
     cntChallenge++;
@@ -1248,7 +1299,6 @@ void think(int depthLimit, int beamWidth=300) {
 	  if (survive == -2)break;
 	}
 	if (survive != -2){
-
 	  State nextState = currentState[depth][k];
 	  Attack nowAttack = Attack(skillRivalId, targetRivalPoint);
 	  simulateAttack(nextState, nowAttack);//defence
@@ -1268,6 +1318,7 @@ void think(int depthLimit, int beamWidth=300) {
 	  
 	  //additional score
 	  calculateMinDistToSoul(nextState);
+	  calculateHammingPreDistance(nextState);
 	  int hammingDistance = calculateHammingDistance(nextState);
 	  if (hammingDistance <= 5){
 	    nextState.replNinjaMode = true;
