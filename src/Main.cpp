@@ -370,31 +370,7 @@ void initBoard(vector<vector<int> > &array, int val){
   }
 
 }
-void checkPanicMode(State &nowState){
 
-  for (int id = 0; id < 2; id++){
-    int px = nowState.ninjas[id].x;
-    int py = nowState.ninjas[id].y;
-    bool dog = false;
-    for (int y = -1; y <= 1; y++){
-      for (int x = -1; x <= 1; x++){
-	int nx = px + x;
-	int ny = py + y;
-
-	if (nowState.field[ny][nx].containsDog){
-	  dog = true;
-	}
-      }
-    }
-    for (int i = 0; i < 4; i++){
-      if (dog && abs(cornerX[i] - px) + abs(cornerY[i] - py) <= 4){
-	nowState.panicMode = true;
-	return ;
-      }
-    }    
-  }
-  return ;
-}
 void useShadowCloneCornerPoint(const State &nowState, const Order &order, vector<Order> &result){
   if (nowState.skillPoint < skills[5].cost){
     return ;
@@ -656,7 +632,7 @@ void possibleAttack(vector<Attack> &result, const State& myState, const State& r
   result.emplace_back(Attack());//None
   if (!checkReachDeath(myState, rivalState))return ;
   attackFallRock(myState, rivalState, result);
-  //  attackShadowClone(myState, rivalState, result);
+  attackShadowClone(myState, rivalState, result);
   return ;
 }
 bool validateOrder(const State& nowState, int comId, int skillId){
