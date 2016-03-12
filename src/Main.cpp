@@ -108,7 +108,7 @@ public:
   int skillUseId;
   int skillId;
   Point targetPoint;
-
+  int skillNumOfUse;
   int skillRivaUselId;
   int skillRivalId;
   Point targetRivalPoint;
@@ -162,7 +162,7 @@ public:
     preNinjaX1 = -1;
     preNinjaY1 = -1;
     hammingPreDistance = 0;
-
+    skillNumOfUse = 0;
     //
     killDog = 0;
   }
@@ -247,7 +247,20 @@ public:
     	return false;
       }
     }
-    
+
+    //Update二回術を使って一個多く手に入れた魂は嬉しくない
+    if (getSoul - right.getSoul >= 1){
+      if (skillNumOfUse - right.skillNumOfUse > 1){
+	return true;
+      }
+      if (skillNumOfUse -right.skillNumOfUse <= 1){
+	return false;
+      }
+    }
+    //二個以上は嬉しいよ
+    if (getSoul - right.getSoul >= 2){
+      return false;
+    }
 
     if (getSoul < right.getSoul){
       return true;
@@ -1316,9 +1329,12 @@ void think(int depthLimit, int beamWidth=100) {
 	    nextState.skillId = skillId;
 	    nextState.targetPoint = targetPoint;
 	  }
+	  if (skillId != -1){
+	    nextState.skillNumOfUse += 1;
+	  }
 	  nextState.skillPoint -= skillCost;
 	  nextState.rivalSkillPoint -= skillRivalCost;
-	  
+
 	  //additional score
 	  calculateMinDistToSoul(nextState);
 	  calculateHammingPreDistance(nextState);
