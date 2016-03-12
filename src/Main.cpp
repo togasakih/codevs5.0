@@ -113,6 +113,7 @@ public:
   int reachDeath;
   int hammingDistance;
   int stepNum;
+  bool panicMode;
   //  vector<Point> shadowNinjas;
   State() {
     skillPoint = H = W = -1;
@@ -141,6 +142,7 @@ public:
     reachDeath = 0;
     hammingDistance = 0;
     stepNum = 0;
+    panicMode = false;
   }
 
   static State input(int numOfSkills) {
@@ -202,7 +204,12 @@ public:
   }
 
   bool operator < (const State &right) const {
-
+    // if (panicMode && !right.panicMode){
+    //   return false;
+    // }
+    // if (!panicMode && right.panicMode){
+    //   return true;
+    // }
     for (int i = 0; i < survive.size(); i++){
       if (survive[i] < right.survive[i]){
     	return true;
@@ -213,6 +220,35 @@ public:
 
     }
 
+    
+    // if (panicMode && right.panicMode){
+    //   int sum1 = 0;
+    //   for (int id = 0; id < 2; id++){
+    // 	int px = ninjas[id].x;
+    // 	int py = ninjas[id].y;
+    // 	int dist = INF;
+    // 	for (int k = 0; k < 4; k++){
+    // 	  dist = min(dist, abs(px - cornerX[k]) + abs(py - cornerY[k]));
+    // 	}
+    // 	sum1 += dist;
+    //   }
+    //   int sum2 = 0;
+    //   for (int id = 0; id < 2; id++){
+    // 	int px = right.ninjas[id].x;
+    // 	int py = right.ninjas[id].y;
+    // 	int dist = INF;
+    // 	for (int k = 0; k < 4; k++){
+    // 	  dist = min(dist, abs(px - cornerX[k]) + abs(py - cornerY[k]));
+    // 	}
+    // 	sum2 += dist;
+    //   }
+    //   if (sum1 < sum2){
+    // 	return true;
+    //   }
+    //   if (sum1 > sum2){
+    // 	return false;
+    //   }
+    // }
     if (getSoul < right.getSoul){
       return true;
     }
@@ -220,44 +256,16 @@ public:
       return false;
     }
     
-    // int cnt1 = 0;
-    // int cnt2 = 0;    
-    // for (int id = 0; id < 2; id++){
-    //   int px = ninjas[id].x;
-    //   int py = ninjas[id].y;
-    //   for (int i = 0; i < 4; i++){
-    // 	int nx = px + dx[i];
-    // 	int ny = py + dy[i];
-    // 	if (!field[ny][nx].isEmpty() || field[ny][nx].containsDog){
-    // 	  cnt1++;
-    // 	}
-    //   }
-    //   int qx = right.ninjas[id].x;
-    //   int qy = right.ninjas[id].y;
-    //   for (int i = 0; i < 4; i++){
-    // 	int nx = qx + dx[i];
-    // 	int ny = qy + dy[i];
-    // 	if (!right.field[ny][nx].isEmpty() || right.field[ny][nx].containsDog){
-    // 	  cnt2++;
-    // 	}
-    //   }
-    // }
-    // if (cnt1 >= 4 || cnt2 >= 4){
-    //   if (cnt1 < cnt2){
-    // 	return false;
-    //   }
-    //   if (cnt1 > cnt2){
-    // 	return true;
-    //   }
-    // }
-    
     if (skillPoint < right.skillPoint){
       return true;
     }
     if (skillPoint > right.skillPoint){
       return false;
     }
-
+    if (minDistSoulById[0] + minDistSoulById[1] ==  right.minDistSoulById[0] + right.minDistSoulById[1]){
+      return stepNum < right.stepNum;
+      
+    }
     return minDistSoulById[0] + minDistSoulById[1] > right.minDistSoulById[0] + right.minDistSoulById[1];
   }
 };
@@ -324,9 +332,34 @@ int remTime;
 //vector<Skill> skills;
 State myState;
 State rivalState;
-
-
 vector<vector<string> > commands;
+
+void checkPanicMode(State &nowState){
+
+  for (int id = 0; id < 2; id++){
+    int px = nowState.ninjas[id].x;
+    int py = nowState.ninjas[id].y;
+    bool dog = false;
+    for (int y = -1; y <= 1; y++){
+      for (int x = -1; x <= 1; x++){
+	int nx = px + x;
+	int ny = py + y;
+
+	if (nowState.field[ny][nx].containsDog){
+	  dog = true;
+	}
+      }
+    }
+    for (int i = 0; i < 4; i++){
+      if (dog && abs(cornerX[i] - px) + abs(cornerY[i] - py) <= 4){
+	nowState.panicMode = true;
+	return ;
+      }
+    }    
+  }
+  return ;
+}
+
 void useShadowCloneFarthestPoint(const State &nowState, const Order &order, vector<Order> &result){
   vector<vector<int> > dist(nowState.H, vector<int>(nowState.W, INF));
   Order next = order;
@@ -496,7 +529,7 @@ void attackShadowClone(const State& myState, const State& rivalState, vector<Att
 void possibleAttack(vector<Attack> &result, const State& myState, const State& rivalState){
   result.emplace_back(Attack());//None
   attackFallRock(myState, rivalState, result);
-  attackShadowClone(myState, rivalState, result);
+  //  attackShadowClone(myState, rivalState, result);
   return ;
 }
 bool validateOrder(const State& nowState, int comId, int skillId){
@@ -520,6 +553,13 @@ bool validateOrder(const State& nowState, int comId, int skillId){
 	    return false;
 	  }
 	}
+      }
+    }
+    for (int k = 0; k < 5; k++){
+      int pnx = px + dx[k];
+      int pny = py + dy[k];
+      if (nowState.field[pny][pnx].containsDog && skillId != 5){//unused shadowclone
+	return false;
       }
     }
   }
@@ -960,6 +1000,17 @@ bool pruningAttack(const State& nowState, const Order& nowOrder, const Attack& n
   return true;
 }
 
+
+void selectState(vector<State> &currentState, int beamWidth){
+  for (int i = 0; i < currentState.size(); i++){
+    if (currentState[i].skillId == 3){
+    }
+
+  }
+
+  return ;
+}
+
 /*
  * このAIについて
  * - 各忍者について、 thinkByNinja(id) を2回行います。
@@ -969,7 +1020,7 @@ bool pruningAttack(const State& nowState, const Order& nowOrder, const Attack& n
  * -- 「超高速」のみを使用します。
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
-void think(int depthLimit, int beamWidth=1) {
+void think(int depthLimit, int beamWidth=50) {
   vector<State> currentState[depthLimit + 1];
   currentState[0].emplace_back(myState);
   //depth 0
@@ -983,6 +1034,7 @@ void think(int depthLimit, int beamWidth=1) {
     //    cerr << depth << " " << cntChallenge << endl;          
     for (int k = 0; k < currentState[depth].size(); k++){
       vector<Order> myOrders;
+      //      cerr << cntChallenge << endl;
       possibleOrder(myOrders,currentState[depth][k], depth, cntChallenge >= 2);
       vector<Attack> rivalAttacks;
       if (depth < 1){
@@ -990,8 +1042,7 @@ void think(int depthLimit, int beamWidth=1) {
       }else{
 	rivalAttacks.emplace_back(Attack());
       }
-
-      //      cerr <<currentState[depth].size() << " " << myOrders.size() << " " << rivalAttacks.size() << endl;
+      //    cerr <<currentState[depth].size() << " " << myOrders.size() << " " << rivalAttacks.size() << endl;      
       for (int i = 0; i < myOrders.size(); i++){
 	int survive = 1;
 	int comId = myOrders[i].comId;
@@ -1006,6 +1057,7 @@ void think(int depthLimit, int beamWidth=1) {
 	int skillRivalCost = skillRivalId >= 0 ? skills[skillRivalId].cost : 0;
 	for (int j = 0; j < rivalAttacks.size(); j++){
 	  State nextState = currentState[depth][k];
+	  //	  checkPanicMode(nextState);
 	  if (pruningAttack(nextState, myOrders[i], rivalAttacks[j])){
 	     continue;
 	  }
@@ -1046,8 +1098,12 @@ void think(int depthLimit, int beamWidth=1) {
 	  }
 	  if (survive == -2)break;
 	}
-	
+	// if (depth == 0 && skillId == 5 && targetPoint.y == 3 && targetPoint.x == 4){
+	//   cerr << survive << endl;
+	    
+	// }
 	if (survive != -2){
+
 	  State nextState = currentState[depth][k];
 	  Attack nowAttack = Attack(skillRivalId, targetRivalPoint);
 	  simulateAttack(nextState, nowAttack);//defence
@@ -1077,7 +1133,7 @@ void think(int depthLimit, int beamWidth=1) {
     if (cntChallenge == 1){
       sort(currentState[depth + 1].rbegin(), currentState[depth + 1].rend());
       if (currentState[depth + 1].empty() || currentState[depth + 1][0].survive[depth] != 1){//use special skill
-	currentState[depth + 1].clear();
+	//	currentState[depth + 1].clear();
 	depth -= 1;
 	continue;
       }
@@ -1087,7 +1143,7 @@ void think(int depthLimit, int beamWidth=1) {
 
   for (int depth = depthLimit; depth >= 1; depth--){
     sort(currentState[depth].rbegin(), currentState[depth].rend());
-    //cerr << currentState[depth].size() << endl;
+    cerr << currentState[depth].size() << endl;
     //    cerr << "dept = " << depth << endl;
     for (int i = 0; i < currentState[depth].size(); i++){
       int comId = currentState[depth][i].commandId;
