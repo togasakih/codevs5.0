@@ -529,8 +529,32 @@ void attackShadowClone(const State& myState, const State& rivalState, vector<Att
   return ;
 }
 
+bool checkReachDeath(const State& myState, const State& rivalState){
+  for (int id = 0; id < 2; id++){
+    int px = myState.ninjas[id].x;
+    int py = myState.ninjas[id].y;
+    for (int y = -3; y <= 3; y++){
+      for (int x = -3; x <= 3; x++){
+	if (abs(x) + abs(y) > 3)continue;
+	int nx = px + x;
+	int ny = py + y;
+	if (nx <= 0 || nx >= myState.W - 1 || ny <= 0 || ny >= myState.H - 1){
+	  continue;
+	}
+	if (myState.field[ny][nx].containsDog){
+	  return true;
+	}
+      }
+    }
+  }
+  return false;
+
+}
+
+
 void possibleAttack(vector<Attack> &result, const State& myState, const State& rivalState){
   result.emplace_back(Attack());//None
+  if (!checkReachDeath(myState, rivalState))return ;
   attackFallRock(myState, rivalState, result);
   attackShadowClone(myState, rivalState, result);
   return ;
@@ -1074,7 +1098,7 @@ void selectStateOnDiversity(vector<State> &currentStates, int beamWidth){
  * -- 「超高速」のみを使用します。
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
-void think(int depthLimit, int beamWidth=50) {
+void think(int depthLimit, int beamWidth=30) {
   vector<State> currentState[depthLimit + 1];
   currentState[0].emplace_back(myState);
   //depth 0
@@ -1296,7 +1320,7 @@ int main() {
   cout.flush();
   commands = createCommands();
   while (input()) {
-    think(2);
+    think(3);
     cout.flush();
   }
 
