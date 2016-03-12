@@ -532,7 +532,7 @@ void attackShadowClone(const State& myState, const State& rivalState, vector<Att
 void possibleAttack(vector<Attack> &result, const State& myState, const State& rivalState){
   result.emplace_back(Attack());//None
   attackFallRock(myState, rivalState, result);
-  //  attackShadowClone(myState, rivalState, result);
+  attackShadowClone(myState, rivalState, result);
   return ;
 }
 bool validateOrder(const State& nowState, int comId, int skillId){
@@ -1021,10 +1021,10 @@ bool pruningAttack(const State& nowState, const Order& nowOrder, const Attack& n
 void selectStateOnDiversity(vector<State> &currentStates, int beamWidth){
   vector<bool> used(currentStates.size(), false);
   vector<State> nextStates;
-  int cntLightning = beamWidth / 2 - 5;
-  int cntShadowClone = beamWidth / 2 - 5;
+  int cntLightning = beamWidth / 3;
+  int cntShadowClone = beamWidth / 3;
   
-  for (int i = 0; i < 10; i++){
+  for (int i = 0; i < 5; i++){
     nextStates.push_back(currentStates[i]);
     used[i] = true;
     if (currentStates[i].skillId == 3){
@@ -1074,7 +1074,7 @@ void selectStateOnDiversity(vector<State> &currentStates, int beamWidth){
  * -- 「超高速」のみを使用します。
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
-void think(int depthLimit, int beamWidth=75) {
+void think(int depthLimit, int beamWidth=50) {
   vector<State> currentState[depthLimit + 1];
   currentState[0].emplace_back(myState);
   //depth 0
@@ -1296,7 +1296,7 @@ int main() {
   cout.flush();
   commands = createCommands();
   while (input()) {
-    think(3);
+    think(2);
     cout.flush();
   }
 
