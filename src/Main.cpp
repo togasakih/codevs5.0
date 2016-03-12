@@ -637,7 +637,7 @@ vector<int> createCommands(){
   for (int i = 0; i < 5; i++){
     for (int j = 0; j < 5; j++){
       if (i == 4)break;
-      int bit = i * pow5[1] + j * pow5[0];
+      int bit = i * pow5[0] + j * pow5[1];
       tmp.push_back(bit);
     }
   }
