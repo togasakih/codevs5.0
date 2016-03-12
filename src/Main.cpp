@@ -126,6 +126,7 @@ public:
   int preNinjaX1;
   int preNinjaY1;
   int hammingPreDistance;
+  int killDog;
   State() {
     skillPoint = H = W = -1;
     field.clear();
@@ -161,6 +162,9 @@ public:
     preNinjaX1 = -1;
     preNinjaY1 = -1;
     hammingPreDistance = 0;
+
+    //
+    killDog = 0;
   }
 
   static State input(int numOfSkills) {
@@ -243,9 +247,15 @@ public:
     	return false;
       }
     }
+    
 
-    //togasaki
-    //two ninjas are very closed
+    if (getSoul < right.getSoul){
+      return true;
+    }
+    if (getSoul > right.getSoul){
+      return false;
+    }
+    
     if (replNinjaMode && right.replNinjaMode){
       if (hammingDistance < right.hammingDistance){
 	return true;
@@ -254,14 +264,21 @@ public:
 	return false;
       }
     }
-    
-    if (getSoul < right.getSoul){
-      return true;
+
+
+
+    if (skillId == 7 && right.skillId == 7){
+      if (killDog < right.killDog){
+	return true;
+      }
+      if (killDog > right.killDog){
+	return false;
+      }
     }
-    if (getSoul > right.getSoul){
-      return false;
-    }
-    
+
+
+
+
     if (skillPoint < right.skillPoint){
       return true;
     }
@@ -573,7 +590,7 @@ void attackFallRock(const State& myState, const State& rivalState, vector<Attack
 	if (fallx <= 0 || fallx >= myState.W - 1 || fally <= 0 || fally >= myState.H - 1){
 	  continue;
 	}
-	if (!myState.field[fally][fallx].isEmpty() || myState.field[fally][fallx].containsDog || myState.field[fally][fallx].containsNinja){
+	if (!myState.field[fally][fallx].isEmpty() || myState.field[fally][fallx].containsDog || myState.field[fally][fallx].containsNinja || myState.field[fally][fallx].containsSoul){
 	  continue;
 	}
 	attack.setSkill(2, Point(fallx, fally));
@@ -690,15 +707,19 @@ void useWhirlslash(const State& nowState, int id, const Order &order, vector<Ord
   int px = nowState.ninjas[id].x;
   int py = nowState.ninjas[id].y;
   Order nextOrder = order;
+  int dog = 0;
   for (int y = -1; y <= 1; y++){
     for (int x = -1; x <= 1; x++){
       if (nowState.field[py + y][px + x].containsDog){
-	nextOrder.setSkill(id, 7);
-	result.emplace_back(nextOrder);
-	return ;
+	dog++;
       }
     }
   }
+  if (dog >= 3){
+    nextOrder.setSkill(id, 7);
+    result.emplace_back(nextOrder);
+  }
+
   return ;
 }
 unsigned long xor128(void){
@@ -712,9 +733,10 @@ void possibleOrder(vector<Order> &result, const State& nowState, int depth, bool
   Order nowOrder;
   for (int i = 0; i < commands.size(); i++){
       nowOrder.setOrder(i);
-      if (validateOrder(nowState, i, -1)){
-	result.emplace_back(nowOrder);
-      }
+      // if (validateOrder(nowState, i, -1)){
+      // 	result.emplace_back(nowOrder);
+      // }
+      result.emplace_back(nowOrder);
       if (depth == 0 || useSpecialSkill){
 	if (!useSpecialSkill){
 	  //2
@@ -722,6 +744,11 @@ void possibleOrder(vector<Order> &result, const State& nowState, int depth, bool
 	  useShadowCloneFarthestPoint(nowState, nowOrder, result);
 	  useShadowCloneCornerPoint(nowState, nowOrder, result);
 	  useLightning(nowState, nowOrder, result);
+	  if (skills[7].cost <= 15){
+	    for (int id = 0; id < 2; id++){
+	      useWhirlslash(nowState, id, nowOrder,result);
+	    }
+	  }
 	}
 	//7
 	if (useSpecialSkill){
@@ -1051,6 +1078,7 @@ void simulateDefence(State& nowState, int skillUseId,int skillId, Point targetPo
 	int ny = py + y;
 	if (nowState.field[ny][nx].containsDog){
 	  nowState.field[ny][nx].containsDog = false;
+	  nowState.killDog++;
 	  nowState.dogs.erase( find(nowState.dogs.begin(), nowState.dogs.end(), Point(nx, ny)) );
 	}
       }
@@ -1257,7 +1285,6 @@ void think(int depthLimit, int beamWidth=100) {
 	int skillRivalCost = skillRivalId >= 0 ? skills[skillRivalId].cost : 0;
 	for (int j = 0; j < rivalAttacks.size(); j++){
 	  State nextState = currentState[depth][k];
-
 	  if (pruningAttack(nextState, myOrders[i], rivalAttacks[j])){
 	     continue;
 	  }
