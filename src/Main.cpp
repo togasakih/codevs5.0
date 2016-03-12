@@ -22,7 +22,7 @@ const int dogDx[] =    {  0,   -1,   1,  0,   0};//U L R D
 const int dogDy[] =    { -1,   0,   0,   1,   0};
 const int cornerX[] = {1, 12, 1, 12};
 const int cornerY[] = {1, 1, 15, 15};
-
+const int pow5[] = {1, 5, 25, 125, 625, 3125, 15625};
 class Point {
 public:
   int x, y;
@@ -332,8 +332,8 @@ int remTime;
 //vector<Skill> skills;
 State myState;
 State rivalState;
-vector<vector<string> > commands;
-
+vector<int> commands;
+//vector<vector<string> > commands;
 void checkPanicMode(State &nowState){
 
   for (int id = 0; id < 2; id++){
@@ -444,22 +444,25 @@ void useLightning(const State& nowState, const Order &order, vector<Order> &resu
     return ;
   }
   Order next = order;
-  const vector<string> &com = commands[order.comId];
+  const int comBits = commands[order.comId];
+  int upperBit = comBits / pow5[2];
+  int lowerBit = comBits - upperBit;
+  //  int comBit = (id == 0 ? (upperBit / pow5[j]) % pow5[1] : (lowerBit / pow5[j]) % pow5[1]);
+  
   for (int id = 0; id < 2; id++){
     int px = nowState.ninjas[id].x;
     int py = nowState.ninjas[id].y;
-
     for (int j = 0; j < 2; j++){
-        int nx = px + dx[com[id][j] - '0'];
-	int ny = py + dy[com[id][j] - '0'];
+      int comBit = (id == 0 ? (upperBit / pow5[j]) % pow5[1] : (lowerBit / pow5[j]) % pow5[1]);
+      int nx = px + dx[comBit];
+	int ny = py + dy[comBit];
 	if (nowState.field[ny][nx].isWall())break;
 	next.setSkill(3);
 	next.setTargetPoint(nx, ny);
 	result.emplace_back(next);
-	int nnx = px + 2 * dx[com[id][j] - '0'];
-	int nny = py + 2 * dy[com[id][j] - '0'];
+	int nnx = px + 2 * dx[comBit];
+	int nny = py + 2 * dy[comBit];
 	if (nowState.field[nny][nnx].isWall())continue;
-
 	next.setSkill(3);
 	next.setTargetPoint(nnx, nny);
 	result.emplace_back(next);
@@ -508,7 +511,7 @@ void attackShadowClone(const State& myState, const State& rivalState, vector<Att
     int py = myState.ninjas[id].y;
     //attack.setSkill(6, Point(px, py));
     for (int y = -2; y <= 2; y++){
-      for (int x = -2; x <= 2; x++){
+     for (int x = -2; x <= 2; x++){
 	int nx = px + x;
 	int ny = py + y;
 	if (abs(x) + abs(y) >= 3)continue;
@@ -534,20 +537,27 @@ void possibleAttack(vector<Attack> &result, const State& myState, const State& r
 }
 bool validateOrder(const State& nowState, int comId, int skillId){
 
+
+  const int comBits = commands[comId];
+  int upperBit = comBits / pow5[2];
+  int lowerBit = comBits - upperBit;
+
+  
   for (int id = 0; id < 2; id++){
     int px = nowState.ninjas[id].x;
     int py = nowState.ninjas[id].y;
     int nx = px;
     int ny = py;
-    for (int i = 0; i < commands[comId][id].size(); i++){
-      nx += dx[commands[comId][id][i] - '0'];
-      ny += dy[commands[comId][id][i] - '0'];
+    for (int i = 0; i < 2; i++){
+      int comBit = (id == 0 ? (upperBit / pow5[i]) % pow5[1] : (lowerBit / pow5[i]) % pow5[1]);
+      nx += dx[comBit];
+      ny += dy[comBit];
       if (nowState.field[ny][nx].isWall()){
 	return false;
       }
       if (nowState.field[ny][nx].isObject()){
-	int nnx = nx + dx[commands[comId][id][i] - '0'];	
-	int nny = ny + dy[commands[comId][id][i] - '0'];
+	int nnx = nx + dx[comBit];	
+	int nny = ny + dy[comBit];
 	if (!nowState.field[nny][nnx].isEmpty() || nowState.field[nny][nnx].containsDog || nowState.field[nny][nnx].containsNinja){
 	  if (skillId != 3 || skillId != 5){
 	    return false;
@@ -610,8 +620,6 @@ void possibleOrder(vector<Order> &result, const State& nowState, int depth, bool
 	//7
 	if (useSpecialSkill){
 	  //2
-
-	  //	  useLightning(nowState, nowOrder, result);
 	  for (int id = 0; id < 2; id++){
 	    useWhirlslash(nowState, id, nowOrder,result);
 	  }
@@ -623,23 +631,20 @@ void possibleOrder(vector<Order> &result, const State& nowState, int depth, bool
 }
 
 
-vector<vector<string> > createCommands(){
-  vector<vector<string> > result;
-  vector<string> tmp;
+vector<int> createCommands(){
+  vector<int> result;
+  vector<int> tmp;
   for (int i = 0; i < 5; i++){
     for (int j = 0; j < 5; j++){
       if (i == 4)break;
-      string com = to_string(i) + to_string(j);
-      tmp.emplace_back(com);
+      int bit = i * pow5[1] + j * pow5[0];
+      tmp.push_back(bit);
     }
   }
 
   for (int i = 0; i < tmp.size(); i++){
     for (int j = 0; j < tmp.size(); j++){
-      vector<string> res;
-      res.emplace_back(tmp[i]);
-      res.emplace_back(tmp[j]);
-      result.emplace_back(res);
+      result.push_back(tmp[i] * pow5[2] + tmp[j]);
     }
   }
 
@@ -826,23 +831,29 @@ void simulateNextDog(State &nowState, const Order &myOrder, const Attack& rivalA
 
 
 //-1 killed 0 fail 1 success 
-int genNextState(State &nextState, const vector<string> &command, bool shadow=false){
+int genNextState(State &nextState, int comId, bool shadow=false){
 
+
+  const int comBits = commands[comId];
+  int upperBit = comBits / pow5[2];
+  int lowerBit = comBits - upperBit;
+  
   for (int id = 0; id < 2; id++){
-    string com = command[id];
-    for (int i = 0; i < com.size(); i++){
+    
+    for (int i = 0; i < 2; i++){
+      int comBit = (id == 0 ? (upperBit / pow5[i]) % pow5[1] : (lowerBit / pow5[i]) % pow5[1]);
       int px = nextState.ninjas[id].x;
       int py = nextState.ninjas[id].y;
-      int nx = px + dx[com[i] - '0'];
-      int ny = py + dy[com[i] - '0'];
+      int nx = px + dx[comBit];
+      int ny = py + dy[comBit];
       if (nextState.field[ny][nx].isWall()){
 	return -1;
       }
 
       if (nextState.field[ny][nx].isObject()){//rock
 	//next empty
-	int nnx = nx + dx[com[i] - '0'];
-	int nny = ny + dy[com[i] - '0'];
+	int nnx = nx + dx[comBit];
+	int nny = ny + dy[comBit];
 	if (nextState.field[nny][nnx].isWall() || !nextState.field[nny][nnx].isEmpty() || nextState.field[nny][nnx].containsDog || nextState.field[nny][nnx].containsNinja){
 	  //	  cerr << nx << " " << ny << " " << nnx << " " << nny << endl;
 	  continue;
@@ -862,7 +873,7 @@ int genNextState(State &nextState, const vector<string> &command, bool shadow=fa
       nextState.field[ny][nx].containsNinja = true;
       nextState.ninjas[id].x = nx;
       nextState.ninjas[id].y = ny;
-      if (com[i] != '4'){
+      if (comBit != 4){
 	nextState.stepNum++;
       }
     }
@@ -979,16 +990,22 @@ bool pruningAttack(const State& nowState, const Order& nowOrder, const Attack& n
   if (nowAttack.skillId == -1){
     return false;
   }
-  const vector<string> &com = commands[nowOrder.comId];
+
+  const int comBits = commands[nowOrder.comId];
+  int upperBit = comBits / pow5[2];
+  int lowerBit = comBits - upperBit;
+
+
   int targetX = nowAttack.targetPoint.x;
   int targetY = nowAttack.targetPoint.y;
-  
+
   for (int id = 0; id < 2; id++){
     int px = nowState.ninjas[id].x;
     int py = nowState.ninjas[id].y;
     for (int j = 0; j < 2; j++){
-      int nx = px + dx[com[id][j] - '0'];
-      int ny = py + dy[com[id][j] - '0'];
+      int comBit = (id == 0 ? (upperBit / pow5[j]) % pow5[1] : (lowerBit / pow5[j]) % pow5[1]);  
+      int nx = px + dx[comBit];
+      int ny = py + dy[comBit];
       if (abs(nx - targetX) + abs(ny - targetY) <= 2){
 	return false;
       }
@@ -1175,20 +1192,31 @@ void think(int depthLimit, int beamWidth=50) {
 	  cout << 3 << endl;
 	  cout << 7 << " " << skillUseId << endl;
 	}
-	for (int j = 0; j < commands[comId].size(); j++){
-	  string com = commands[comId][j];
-	  for (int k = 0; k < com.size(); k++){
-	    cout << ds[com[k] - '0'];
+
+	const int comBits = commands[comId];
+	int upperBit = comBits / pow5[2];
+	int lowerBit = comBits - upperBit;
+
+	for (int id = 0; id < 2; id++){
+	  for (int j = 0; j < 2; j++){
+	    int comBit = (id == 0 ? (upperBit / pow5[j]) % pow5[1] : (lowerBit / pow5[j]) % pow5[1]);
+	    cout << ds[comBit];
 	  }
 	  cout << endl;
 	}
 	return ;
       }else{//unused skill
+
+
+	const int comBits = commands[comId];
+	int upperBit = comBits / pow5[2];
+	int lowerBit = comBits - upperBit;
+
 	cout << 2 << endl;
-	for (int j = 0; j < commands[comId].size(); j++){
-	  string com = commands[comId][j];
-	  for (int k = 0; k < com.size(); k++){
-	    cout << ds[com[k] - '0'];
+	for (int id = 0; id < 2; id++){
+	  for (int j = 0; j < 2; j++){
+	    int comBit = (id == 0 ? (upperBit / pow5[j]) % pow5[1] : (lowerBit / pow5[j]) % pow5[1]);
+	    cout << ds[comBit];
 	  }
 	  cout << endl;
 	}
