@@ -446,7 +446,7 @@ void useLightning(const State& nowState, const Order &order, vector<Order> &resu
   Order next = order;
   const int comBits = commands[order.comId];
   int upperBit = comBits / pow5[2];
-  int lowerBit = comBits - upperBit;
+  int lowerBit = comBits - upperBit * pow5[2];
   //  int comBit = (id == 0 ? (upperBit / pow5[j]) % pow5[1] : (lowerBit / pow5[j]) % pow5[1]);
   
   for (int id = 0; id < 2; id++){
@@ -455,7 +455,7 @@ void useLightning(const State& nowState, const Order &order, vector<Order> &resu
     for (int j = 0; j < 2; j++){
       int comBit = (id == 0 ? (upperBit / pow5[j]) % pow5[1] : (lowerBit / pow5[j]) % pow5[1]);
       int nx = px + dx[comBit];
-	int ny = py + dy[comBit];
+      int ny = py + dy[comBit];
 	if (nowState.field[ny][nx].isWall())break;
 	next.setSkill(3);
 	next.setTargetPoint(nx, ny);
@@ -540,7 +540,7 @@ bool validateOrder(const State& nowState, int comId, int skillId){
 
   const int comBits = commands[comId];
   int upperBit = comBits / pow5[2];
-  int lowerBit = comBits - upperBit;
+  int lowerBit = comBits - upperBit * pow5[2];
 
   
   for (int id = 0; id < 2; id++){
@@ -644,7 +644,7 @@ vector<int> createCommands(){
 
   for (int i = 0; i < tmp.size(); i++){
     for (int j = 0; j < tmp.size(); j++){
-      result.push_back(tmp[i] * pow5[2] + tmp[j]);
+      result.push_back(tmp[i] * pow5[2] + tmp[j] * pow5[0]);
     }
   }
 
@@ -836,7 +836,7 @@ int genNextState(State &nextState, int comId, bool shadow=false){
 
   const int comBits = commands[comId];
   int upperBit = comBits / pow5[2];
-  int lowerBit = comBits - upperBit;
+  int lowerBit = comBits - upperBit * pow5[2];
   
   for (int id = 0; id < 2; id++){
     
@@ -993,7 +993,7 @@ bool pruningAttack(const State& nowState, const Order& nowOrder, const Attack& n
 
   const int comBits = commands[nowOrder.comId];
   int upperBit = comBits / pow5[2];
-  int lowerBit = comBits - upperBit;
+  int lowerBit = comBits - upperBit * pow5[2];
 
 
   int targetX = nowAttack.targetPoint.x;
@@ -1081,7 +1081,7 @@ void think(int depthLimit, int beamWidth=50) {
 	  
 	  simulateAttack(nextState, rivalAttacks[j]);
 	  simulateDefence(nextState, skillUseId, skillId, targetPoint);
-	  int tmp = genNextState(nextState, commands[comId], skillId == 5);
+	  int tmp = genNextState(nextState, comId, skillId == 5);
 
 	  if (tmp == -1){//killed
 	    if (rivalAttacks[j].skillId != -1){//use skill
@@ -1125,7 +1125,7 @@ void think(int depthLimit, int beamWidth=50) {
 	  Attack nowAttack = Attack(skillRivalId, targetRivalPoint);
 	  simulateAttack(nextState, nowAttack);//defence
 	  simulateDefence(nextState, skillUseId, skillId, targetPoint);//defence
-	  genNextState(nextState, commands[comId], skillId == 5);//survive
+	  genNextState(nextState, comId, skillId == 5);//survive
 	  simulateNextDog(nextState, myOrders[i], nowAttack);//attack
 	  
 	  nextState.survive.emplace_back(survive);
@@ -1195,7 +1195,7 @@ void think(int depthLimit, int beamWidth=50) {
 
 	const int comBits = commands[comId];
 	int upperBit = comBits / pow5[2];
-	int lowerBit = comBits - upperBit;
+	int lowerBit = comBits - upperBit * pow5[2];
 
 	for (int id = 0; id < 2; id++){
 	  for (int j = 0; j < 2; j++){
@@ -1210,7 +1210,7 @@ void think(int depthLimit, int beamWidth=50) {
 
 	const int comBits = commands[comId];
 	int upperBit = comBits / pow5[2];
-	int lowerBit = comBits - upperBit;
+	int lowerBit = comBits - upperBit * pow5[2];
 
 	cout << 2 << endl;
 	for (int id = 0; id < 2; id++){
