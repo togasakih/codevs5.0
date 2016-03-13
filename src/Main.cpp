@@ -1181,8 +1181,8 @@ bool pruningAttack(const State& nowState, const Order& nowOrder, const Attack& n
 void selectStateOnDiversity(vector<State> &currentStates, int beamWidth){
   vector<bool> used(currentStates.size(), false);
   vector<State> nextStates;
-  int cntLightning = beamWidth / 3;
-  int cntShadowClone = beamWidth / 3;
+  int cntLightning = beamWidth / 4;
+  int cntShadowClone = beamWidth / 4;
   
   for (int i = 0; i < 5; i++){
     nextStates.push_back(currentStates[i]);
@@ -1235,7 +1235,7 @@ void selectStateOnDiversity(vector<State> &currentStates, int beamWidth){
  * -- 「超高速」のみを使用します。
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
-void think(int depthLimit, int beamWidth=100) {
+void think(int depthLimit, int beamWidth=150) {
   vector<State> currentState[depthLimit + 1];
   currentState[0].emplace_back(myState);
   //depth 0
@@ -1317,7 +1317,9 @@ void think(int depthLimit, int beamWidth=100) {
 	if (survive != -2){
 	  State nextState = currentState[depth][k];
 	  Attack nowAttack = Attack(skillRivalId, targetRivalPoint);
-	  simulateAttack(nextState, nowAttack);//defence
+	  //ignore
+	  //simulateAttack(nextState, nowAttack);//defence
+	  //nextState.rivalSkillPoint -= skillRivalCost;
 	  simulateDefence(nextState, skillUseId, skillId, targetPoint);//defence
 	  genNextState(nextState, comId, skillId == 5);//survive
 	  simulateNextDog(nextState, myOrders[i], nowAttack);//attack
@@ -1333,7 +1335,7 @@ void think(int depthLimit, int beamWidth=100) {
 	    nextState.skillNumOfUse += 1;
 	  }
 	  nextState.skillPoint -= skillCost;
-	  nextState.rivalSkillPoint -= skillRivalCost;
+
 
 	  //additional score
 	  calculateMinDistToSoul(nextState);
