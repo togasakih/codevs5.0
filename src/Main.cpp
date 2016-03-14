@@ -636,19 +636,18 @@ void useLightning(const State& nowState, const Order &order, vector<Order> &resu
       int comBit = ((id == 0) ? (upperBit / pow5[j]) % pow5[1] : (lowerBit / pow5[j]) % pow5[1]);
       int nx = px + dx[comBit];
       int ny = py + dy[comBit];
-	if (nowState.field[ny][nx].isWall())break;
-	next.setSkill(3);
-	next.setTargetPoint(nx, ny);
-	result.emplace_back(next);
-	int nnx = px + 2 * dx[comBit];
-	int nny = py + 2 * dy[comBit];
-	if (nowState.field[nny][nnx].isWall())continue;
-	next.setSkill(3);
-	next.setTargetPoint(nnx, nny);
-	result.emplace_back(next);
-	
-	px = nx;
-	py = ny;
+      if (nowState.field[ny][nx].isWall())break;
+      next.setSkill(3);
+      next.setTargetPoint(nx, ny);
+      result.emplace_back(next);
+      int nnx = px + 2 * dx[comBit];
+      int nny = py + 2 * dy[comBit];
+      if (nowState.field[nny][nnx].isWall())continue;
+      next.setSkill(3);
+      next.setTargetPoint(nnx, nny);
+      result.emplace_back(next);
+      px = nx;
+      py = ny;
     }
   }
   return ;
@@ -780,7 +779,7 @@ bool validateOrder(const State& nowState, int comId, int skillId){
   return true;
 }
 
-void useWhirlslash(const State& nowState, int id, const Order &order, vector<Order> &result){
+void useWhirlslash(const State& nowState, int id, const Order &order, vector<Order> &result, bool special=false){
   if (nowState.skillPoint < skills[7].cost){
     return ;
   }
@@ -795,7 +794,7 @@ void useWhirlslash(const State& nowState, int id, const Order &order, vector<Ord
       }
     }
   }
-  if ((skills[7].cost > 15 && dog >= 4) || (skills[7].cost >= 9 && skills[7].cost <= 15 && dog >= 3) || (skills[7].cost < 9 && dog >= 2)){
+  if (special || (skills[7].cost > 15 && dog >= 4) || (skills[7].cost >= 9 && skills[7].cost <= 15 && dog >= 3) || (skills[7].cost < 9 && dog >= 2)){
     nextOrder.setSkill(id, 7);
     result.emplace_back(nextOrder);
   }
@@ -803,22 +802,21 @@ void useWhirlslash(const State& nowState, int id, const Order &order, vector<Ord
   return ;
 }
 
-void possibleOrder(vector<Order> &result, const State& nowState, int depth, bool useSpecialSkill){
+void possibleOrder(vector<Order> &result, const State& nowState, int depth, bool useSpecialSkill, bool flagMyAttack=false){
   
   Order nowOrder;
   //  cerr << depth << " " << useSpecialSkill << endl;
-  for (int i = 0; i < commands.size(); i++){
+  if (!flagMyAttack){//myOrder
+    for (int i = 0; i < commands.size(); i++){
       nowOrder.setOrder(i);
       if (validateOrder(nowState, i, -1)){
 	result.emplace_back(nowOrder);
       }
-
       if (depth == 0 && nowState.attackMode == true){
 	//	cerr << nowState.skillId << " " << nowState.targetPoint.y << " " << nowState.targetPoint.x << endl;
 	//	assert(false);
        	continue;
       }
-      
       if (depth == 0 || useSpecialSkill){
 	if (!useSpecialSkill){
 	  //2
@@ -837,12 +835,22 @@ void possibleOrder(vector<Order> &result, const State& nowState, int depth, bool
 	  //2
 	  useShadowClone(nowState, nowOrder, result);
 	  for (int id = 0; id < 2; id++){
-	    useWhirlslash(nowState, id, nowOrder,result);
+	    useWhirlslash(nowState, id, nowOrder,result,useSpecialSkill);
 	  }
 	}
       }
     }
 
+  }else{//rival order
+    for (int i = 0; i < commands.size(); i++){
+      nowOrder.setOrder(i);
+      if (validateOrder(nowState, i, -1)){
+	result.emplace_back(nowOrder);
+      }
+      useShadowClone(nowState, nowOrder, result);
+      useLightning(nowState, nowOrder, result);
+    }
+  }
   return ;
 }
 
@@ -1328,7 +1336,7 @@ void checkNearCorner(State &nowState){
 void attackPhase(const State& myState, const State& rivalState, vector<State> &result){
   vector<Order> rivalOrders;
 
-  possibleOrder(rivalOrders, rivalState, 0, false);
+  possibleOrder(rivalOrders, rivalState, 0, false, true);
   
   vector<Attack> myAttacks;
   myAttacks.emplace_back(Attack());//None
@@ -1508,6 +1516,8 @@ void think(int depthLimit, int beamWidth=100) {
 	  int lowerBit = comBits - upperBit * pow5[2];
 	  State nextState = currentState[depth][k];
 	  Attack nowAttack = Attack(skillRivalId, targetRivalPoint);
+	  //	  cerr << skillId << " " << targetPoint.y << " " << targetPoint.x << endl;
+	  //assert(survive != 1);
 	  //ignore
 	  //simulateAttack(nextState, nowAttack);//defence
 	  //nextState.rivalSkillPoint -= skillRivalCost;
@@ -1558,7 +1568,6 @@ void think(int depthLimit, int beamWidth=100) {
   for (int depth = depthLimit; depth >= 1; depth--){
     sort(currentState[depth].rbegin(), currentState[depth].rend());
     cerr << currentState[depth].size() << endl;
-    //    cerr << "dept = " << depth << endl;
     for (int i = 0; i < currentState[depth].size(); i++){
       int comId = currentState[depth][i].commandId;
       int skillUseId = currentState[depth][i].skillUseId;
@@ -1567,10 +1576,13 @@ void think(int depthLimit, int beamWidth=100) {
       int tarY = currentState[depth][i].targetPoint.y;
       int survive = currentState[depth][i].survive[0];
 
+      if (depth != 1 && survive != 1)continue;//not alive
       int p1x = currentState[depth][i].ninjas[0].x;
       int p1y = currentState[depth][i].ninjas[0].y;
       int p2x = currentState[depth][i].ninjas[1].x;
       int p2y = currentState[depth][i].ninjas[1].y;
+      //      cerr << "survive = " << survive << endl;
+
       cerr << "skillId = " << skillId << endl;
       cerr << "comId = " << comId << " " << currentState[depth][i].survive[0] << " " << currentState[depth][i].kill << endl;
 
