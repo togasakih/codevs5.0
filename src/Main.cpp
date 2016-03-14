@@ -300,8 +300,6 @@ public:
       }
     }
 
-
-    
     if (replNinjaMode && right.replNinjaMode){
       if (hammingDistance < right.hammingDistance){
 	return true;
@@ -731,8 +729,7 @@ void useWhirlslash(const State& nowState, int id, const Order &order, vector<Ord
       }
     }
   }
-  if (dog >= 2){
-    //    cerr << "kaitengiri!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
+  if ((skills[7].cost > 10 && dog >= 3) || (skills[7].cost <= 10 && dog >= 2)){
     nextOrder.setSkill(id, 7);
     result.emplace_back(nextOrder);
   }
@@ -1302,7 +1299,7 @@ void checkConfined(State &nowState){
  * -- 「超高速」のみを使用します。
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
-void think(int depthLimit, int beamWidth=130) {
+void think(int depthLimit, int beamWidth=80) {
   vector<State> currentState[depthLimit + 1];
   currentState[0].emplace_back(myState);
   //depth 0
