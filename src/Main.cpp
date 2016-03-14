@@ -87,7 +87,7 @@ public:
     return Character(id, x, y);
   }
 };
-
+vector<Skill> skills;
 class State {
 public:
   int skillPoint;
@@ -127,6 +127,8 @@ public:
   int preNinjaY1;
   int hammingPreDistance;
   int killDog;
+  vector<int> minSoulHammingDistance;
+  bool ninjaConfined;
   State() {
     skillPoint = H = W = -1;
     field.clear();
@@ -165,6 +167,8 @@ public:
     skillNumOfUse = 0;
     //
     killDog = 0;
+    minSoulHammingDistance.clear();
+    ninjaConfined = false;
   }
 
   static State input(int numOfSkills) {
@@ -204,6 +208,7 @@ public:
 	st.preNinjaY1 = ninja.y;
       }
       st.minDistSoulById.emplace_back(INF);
+      st.minSoulHammingDistance.emplace_back(INF);
       st.field[ninja.y][ninja.x].containsNinja = true;
     }
 
@@ -247,7 +252,16 @@ public:
     	return false;
       }
     }
+    //very low
+    if (skills[7].cost <= 9){
+      if (killDog < right.killDog){
+	return true;
+      }
+      if (killDog > right.killDog){
+	return false;
+      }
 
+    }
     //Update二回術を使って一個多く手に入れた魂は嬉しくない
     if (getSoul - right.getSoul >= 1){
       if (skillNumOfUse - right.skillNumOfUse > 1){
@@ -268,6 +282,25 @@ public:
     if (getSoul > right.getSoul){
       return false;
     }
+    //閉じ込められてる
+    if (ninjaConfined && !right.ninjaConfined){
+      return true;
+    }
+    //閉じ込められてない
+    if (!ninjaConfined && right.ninjaConfined){
+      return false;
+    }
+
+    if (skills[7].cost <= 18){
+      if (killDog < right.killDog){
+	return true;
+      }
+      if (killDog > right.killDog){
+	return false;
+      }
+    }
+
+
     
     if (replNinjaMode && right.replNinjaMode){
       if (hammingDistance < right.hammingDistance){
@@ -278,33 +311,27 @@ public:
       }
     }
 
-
-
-    if (skillId == 7 && right.skillId == 7){
-      if (killDog < right.killDog){
-	return true;
-      }
-      if (killDog > right.killDog){
-	return false;
-      }
-    }
-
-
-
-
     if (skillPoint < right.skillPoint){
       return true;
     }
+
     if (skillPoint > right.skillPoint){
       return false;
     }
     if (minDistSoulById[0] + minDistSoulById[1] ==  right.minDistSoulById[0] + right.minDistSoulById[1]){
+      if (minSoulHammingDistance[0] + minSoulHammingDistance[1] > right.minSoulHammingDistance[0] + right.minSoulHammingDistance[1]){
+	return true;
+      }
+      if (minSoulHammingDistance[0] + minSoulHammingDistance[1]< right.minSoulHammingDistance[0] + right.minSoulHammingDistance[1]){
+	return false;
+      }
       if (hammingPreDistance < right.hammingPreDistance){
 	return true;
       }
       if (hammingPreDistance > right.hammingPreDistance){
 	return false;
       }
+
     }
     return minDistSoulById[0] + minDistSoulById[1] > right.minDistSoulById[0] + right.minDistSoulById[1];
   }
@@ -333,7 +360,7 @@ public:
   }
   
 };
-vector<Skill> skills;
+
 class Order{
 public:
   int comId;
@@ -704,7 +731,7 @@ void useWhirlslash(const State& nowState, int id, const Order &order, vector<Ord
       }
     }
   }
-  if (dog >= 3){
+  if (dog >= 2){
     nextOrder.setSkill(id, 7);
     result.emplace_back(nextOrder);
   }
@@ -733,7 +760,7 @@ void possibleOrder(vector<Order> &result, const State& nowState, int depth, bool
 	  useShadowCloneFarthestPoint(nowState, nowOrder, result);
 	  useShadowCloneCornerPoint(nowState, nowOrder, result);
 	  useLightning(nowState, nowOrder, result);
-	  if (skills[7].cost <= 15){
+	  if (skills[7].cost <= 20){
 	    for (int id = 0; id < 2; id++){
 	      useWhirlslash(nowState, id, nowOrder,result);
 	    }
@@ -852,6 +879,22 @@ void calculateMinDistToSoul(State &nowState){
 	}
 	CLOSED[ny][nx] = true;
 	open.push(Search(nx, ny, sc.dist + 1));
+      }
+    }
+  }
+
+  //calculateminDist
+  int taboo = -1;
+  for (int id = 0; id < 2; id++){
+    int px = nowState.ninjas[id].x;
+    int py = nowState.ninjas[id].y;
+    for (int i = 0; i < nowState.souls.size(); i++){
+      if (id == 1 && taboo == i)continue;
+      int sx = nowState.souls[i].x;
+      int sy = nowState.souls[i].y;
+      if (nowState.minSoulHammingDistance[id] > abs(px - sx) + abs(py - sy)) {
+	nowState.minSoulHammingDistance[id] = abs(px - sx) + abs(py - sy);
+	taboo = id;
       }
     }
   }
@@ -1225,7 +1268,26 @@ void selectStateOnDiversity(vector<State> &currentStates, int beamWidth){
   return ;
 }
 
+void checkConfined(State &nowState){
 
+  for (int id = 0; id < 2; id++){
+    int px = nowState.ninjas[id].x;
+    int py = nowState.ninjas[id].y;
+    bool confined = true;
+    for (int i = 0; i < 4; i++){
+      int nx = px + dx[i];
+      int ny = py + dy[i];
+      if (nowState.field[ny][nx].isEmpty() && !nowState.field[ny][nx].containsDog){
+	confined = false;
+	break;
+      }
+    }
+    if (confined){
+      nowState.ninjaConfined = true;
+    }
+  }
+  return ;
+}
 /*
  * このAIについて
  * - 各忍者について、 thinkByNinja(id) を2回行います。
@@ -1235,7 +1297,7 @@ void selectStateOnDiversity(vector<State> &currentStates, int beamWidth){
  * -- 「超高速」のみを使用します。
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
-void think(int depthLimit, int beamWidth=150) {
+void think(int depthLimit, int beamWidth=130) {
   vector<State> currentState[depthLimit + 1];
   currentState[0].emplace_back(myState);
   //depth 0
@@ -1341,6 +1403,7 @@ void think(int depthLimit, int beamWidth=150) {
 	  calculateMinDistToSoul(nextState);
 	  calculateHammingPreDistance(nextState);
 	  int hammingDistance = calculateHammingDistance(nextState);
+	  checkConfined(nextState);
 	  if (hammingDistance <= 5){
 	    nextState.replNinjaMode = true;
 	  }
