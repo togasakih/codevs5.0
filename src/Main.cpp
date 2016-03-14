@@ -261,6 +261,14 @@ public:
       if (survive[i] > right.survive[i]){
     	return false;
       }
+      //kill
+      if (kill > right.kill){
+	return false;
+      }
+      if (kill < right.kill){
+	return true;
+      }
+
     }
 
     //kill
@@ -1405,7 +1413,7 @@ void attackPhase(const State& myState, const State& rivalState, vector<State> &r
  * -- 「超高速」のみを使用します。
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
-void think(int depthLimit, int beamWidth=80) {
+void think(int depthLimit, int beamWidth=100) {
   vector<State> currentState[depthLimit + 1];
  attackPhase(myState, rivalState, currentState[0]);
  // currentState[0].emplace_back(myState);
