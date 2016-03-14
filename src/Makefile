@@ -1,4 +1,4 @@
 all:
-	g++ -O3 -std=c++11 Main.cpp
+	g++ -std=c++11 -O3 -o Solver Main.cpp
 clean:
 	rm a.out
