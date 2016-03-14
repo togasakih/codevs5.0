@@ -292,6 +292,7 @@ public:
     }
 
     //Update二回術を使って一個多く手に入れた魂は嬉しくない
+    
     if (getSoul - right.getSoul >= 1){
       if (skillNumOfUse - right.skillNumOfUse > 1){
 	return true;
@@ -322,14 +323,16 @@ public:
 	return false;
       }
     }
-    if (escapeCornerMode && right.escapeCornerMode){
-      if (cornerClosed < right.cornerClosed){
-	return true;
-      }
-      if (cornerClosed > right.cornerClosed){
-	return false;
-      }
-    }
+
+    //escapemode
+    // if (escapeCornerMode && right.escapeCornerMode){
+    //   if (cornerClosed < right.cornerClosed){
+    // 	return true;
+    //   }
+    //   if (cornerClosed > right.cornerClosed){
+    // 	return false;
+    //   }
+    // }
     // //閉じ込められてる
     // if (ninjaConfined && !right.ninjaConfined){
     //   return true;
@@ -888,7 +891,7 @@ void calculateMinDistToSoul(State &nowState){
 	int ny = sc.y + dy[dir];
 	if (field[ny][nx].isWall())continue;
 	if (CLOSED[ny][nx])continue;
-	if (field[ny][nx].containsDog)continue;
+	//	if (field[ny][nx].containsDog)continue;
 	if (field[ny][nx].isObject()){
 	  int nnx = nx + dx[dir];
 	  int nny = ny + dy[dir];
@@ -928,7 +931,7 @@ void calculateMinDistToSoul(State &nowState){
 	int ny = sc.y + dy[dir];
 	if (field[ny][nx].isWall())continue;
 	if (CLOSED[ny][nx])continue;
-	if (field[ny][nx].containsDog)continue;
+	//	if (field[ny][nx].containsDog)continue;
 	if (field[ny][nx].isObject()){
 	  int nnx = nx + dx[dir];
 	  int nny = ny + dy[dir];
@@ -1416,10 +1419,10 @@ void attackPhase(const State& myState, const State& rivalState, vector<State> &r
  */
 void think(int depthLimit, int beamWidth=100) {
   vector<State> currentState[depthLimit + 1];
-  checkNearCorner(myState);
-  if (myState.cornerClosed <= 3){
-    myState.escapeCornerMode = true;
-  }
+  // checkNearCorner(myState);
+  // if (myState.cornerClosed <= 3){
+  //   myState.escapeCornerMode = true;
+  // }
   attackPhase(myState, rivalState, currentState[0]);
  // currentState[0].emplace_back(myState);
   //depth 0
