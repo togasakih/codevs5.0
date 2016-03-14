@@ -129,7 +129,7 @@ public:
   int killDog;
   vector<int> minSoulHammingDistance;
   bool ninjaConfined;
-
+  bool escapeCornerMode;
 
 
   //attack phase
@@ -181,6 +181,8 @@ public:
     kill = -2;
     attackMode = false;
     cornerClosed = INF;
+
+    escapeCornerMode = false;
   }
 
   static State input(int numOfSkills) {
@@ -289,7 +291,6 @@ public:
       return false;
     }
 
-
     //Update二回術を使って一個多く手に入れた魂は嬉しくない
     if (getSoul - right.getSoul >= 1){
       if (skillNumOfUse - right.skillNumOfUse > 1){
@@ -318,6 +319,14 @@ public:
 	return true;
       }
       if (killDog > right.killDog){
+	return false;
+      }
+    }
+    if (escapeCornerMode && right.escapeCornerMode){
+      if (cornerClosed < right.cornerClosed){
+	return true;
+      }
+      if (cornerClosed > right.cornerClosed){
 	return false;
       }
     }
@@ -1308,14 +1317,16 @@ void checkNearCorner(State &nowState){
     }
     nowState.cornerClosed = min(nowState.cornerClosed, minDist);
   }
+
   return ;
 }
 
 
 void attackPhase(const State& myState, const State& rivalState, vector<State> &result){
   vector<Order> rivalOrders;
-  possibleOrder(rivalOrders, rivalState, 0, false);
 
+  possibleOrder(rivalOrders, rivalState, 0, false);
+  
   vector<Attack> myAttacks;
   myAttacks.emplace_back(Attack());//None
   possibleAttack(myAttacks, rivalState, myState);
@@ -1405,7 +1416,11 @@ void attackPhase(const State& myState, const State& rivalState, vector<State> &r
  */
 void think(int depthLimit, int beamWidth=100) {
   vector<State> currentState[depthLimit + 1];
- attackPhase(myState, rivalState, currentState[0]);
+  checkNearCorner(myState);
+  if (myState.cornerClosed <= 3){
+    myState.escapeCornerMode = true;
+  }
+  attackPhase(myState, rivalState, currentState[0]);
  // currentState[0].emplace_back(myState);
   //depth 0
   int cntChallenge = 0;
