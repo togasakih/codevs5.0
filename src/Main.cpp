@@ -732,6 +732,7 @@ void useWhirlslash(const State& nowState, int id, const Order &order, vector<Ord
     }
   }
   if (dog >= 2){
+    //    cerr << "kaitengiri!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
     nextOrder.setSkill(id, 7);
     result.emplace_back(nextOrder);
   }
@@ -747,12 +748,14 @@ unsigned long xor128(void){
 void possibleOrder(vector<Order> &result, const State& nowState, int depth, bool useSpecialSkill){
   
   Order nowOrder;
+  //  cerr << depth << " " << useSpecialSkill << endl;
   for (int i = 0; i < commands.size(); i++){
       nowOrder.setOrder(i);
       // if (validateOrder(nowState, i, -1)){
       // 	result.emplace_back(nowOrder);
       // }
       result.emplace_back(nowOrder);
+      
       if (depth == 0 || useSpecialSkill){
 	if (!useSpecialSkill){
 	  //2
@@ -1305,7 +1308,7 @@ void think(int depthLimit, int beamWidth=130) {
   for (int depth = 0; depth < depthLimit; depth++){
     if (currentState[depth].size() > beamWidth){
       sort(currentState[depth].rbegin(), currentState[depth].rend());
-      selectStateOnDiversity(currentState[depth], beamWidth);
+      //      selectStateOnDiversity(currentState[depth], beamWidth);
       currentState[depth].erase(currentState[depth].begin() + beamWidth, currentState[depth].end());
     }
     cntChallenge++;
@@ -1377,6 +1380,8 @@ void think(int depthLimit, int beamWidth=130) {
 	  if (survive == -2)break;
 	}
 	if (survive != -2){
+	  //	  cerr << skillId << " " << targetPoint.y << " " << targetPoint.x << endl;
+	  //	  assert(survive != 1);
 	  State nextState = currentState[depth][k];
 	  Attack nowAttack = Attack(skillRivalId, targetRivalPoint);
 	  //ignore
@@ -1416,6 +1421,7 @@ void think(int depthLimit, int beamWidth=130) {
     if (cntChallenge == 1){
       sort(currentState[depth + 1].rbegin(), currentState[depth + 1].rend());
       if (currentState[depth + 1].empty() || currentState[depth + 1][0].survive[depth] != 1){//use special skill
+	//	cerr << "PROBABLY DEATH!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
 	//	currentState[depth + 1].clear();
 	depth -= 1;
 	continue;
