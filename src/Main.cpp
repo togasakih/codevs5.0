@@ -899,7 +899,7 @@ void calculateMinDistToSoul(State &nowState){
 	int ny = sc.y + dy[dir];
 	if (field[ny][nx].isWall())continue;
 	if (CLOSED[ny][nx])continue;
-	//	if (field[ny][nx].containsDog)continue;
+       	if (field[ny][nx].containsDog)continue;
 	if (field[ny][nx].isObject()){
 	  int nnx = nx + dx[dir];
 	  int nny = ny + dy[dir];
@@ -939,7 +939,7 @@ void calculateMinDistToSoul(State &nowState){
 	int ny = sc.y + dy[dir];
 	if (field[ny][nx].isWall())continue;
 	if (CLOSED[ny][nx])continue;
-	//	if (field[ny][nx].containsDog)continue;
+	if (field[ny][nx].containsDog)continue;
 	if (field[ny][nx].isObject()){
 	  int nnx = nx + dx[dir];
 	  int nny = ny + dy[dir];
