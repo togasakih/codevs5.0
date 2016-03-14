@@ -695,23 +695,23 @@ bool validateOrder(const State& nowState, int comId, int skillId){
       if (nowState.field[ny][nx].isWall()){
 	return false;
       }
-      if (nowState.field[ny][nx].isObject()){
-	int nnx = nx + dx[comBit];	
-	int nny = ny + dy[comBit];
-	if (!nowState.field[nny][nnx].isEmpty() || nowState.field[nny][nnx].containsDog || nowState.field[nny][nnx].containsNinja){
-	  if (skillId != 3 || skillId != 5){
-	    return false;
-	  }
-	}
-      }
+      // if (nowState.field[ny][nx].isObject()){
+      // 	int nnx = nx + dx[comBit];	
+      // 	int nny = ny + dy[comBit];
+      // 	if (!nowState.field[nny][nnx].isEmpty() || nowState.field[nny][nnx].containsDog || nowState.field[nny][nnx].containsNinja){
+      // 	  if (skillId != 3 || skillId != 5){
+      // 	    return false;
+      // 	  }
+      // 	}
+      // }
     }
-    for (int k = 0; k < 5; k++){
-      int pnx = px + dx[k];
-      int pny = py + dy[k];
-      if (nowState.field[pny][pnx].containsDog && skillId != 5){//unused shadowclone
-	return false;
-      }
-    }
+     // for (int k = 0; k < 5; k++){
+     //   int pnx = nx + dx[k];
+     //   int pny = ny + dy[k];
+     //   if (nowState.field[pny][pnx].containsDog && skillId != 5){//unused shadowclone
+     // 	return false;
+     //   }
+     // }
   }
   return true;
 }
@@ -751,10 +751,10 @@ void possibleOrder(vector<Order> &result, const State& nowState, int depth, bool
   //  cerr << depth << " " << useSpecialSkill << endl;
   for (int i = 0; i < commands.size(); i++){
       nowOrder.setOrder(i);
-      // if (validateOrder(nowState, i, -1)){
-      // 	result.emplace_back(nowOrder);
-      // }
-      result.emplace_back(nowOrder);
+      if (validateOrder(nowState, i, -1)){
+        	result.emplace_back(nowOrder);
+      }
+      //result.emplace_back(nowOrder);
       
       if (depth == 0 || useSpecialSkill){
 	if (!useSpecialSkill){
@@ -1079,7 +1079,7 @@ void simulateAttack(State &nowState, const Attack &attack){
   int skillId = attack.skillId;
   int tarX = attack.targetPoint.x;
   int tarY = attack.targetPoint.y;
-  if (skillId == 2){
+  if (skillId == 2){//falllock
     nowState.field[tarY][tarX].kind = 'O';
   }
   
@@ -1092,13 +1092,13 @@ void simulateDefence(State& nowState, int skillUseId,int skillId, Point targetPo
   if (skillId == -1){
     return ;
   }
-  if (skillId == 3){
+  if (skillId == 3){//useLightning
     if (nowState.field[tarY][tarX].isObject()){
       nowState.field[tarY][tarX].kind = '_';
       return ;
     }
   }
-  if (skillId == 5){
+  if (skillId == 5){//shadowclone
     if (nowState.field[tarY][tarX].isObject()){//obeject
       nowState.targetPoint = Point(-1, -1);
     }
@@ -1232,6 +1232,7 @@ void selectStateOnDiversity(vector<State> &currentStates, int beamWidth){
   
   for (int i = 0; i < 5; i++){
     nextStates.push_back(currentStates[i]);
+    cerr << currentStates[i].survive[0] << endl;
     used[i] = true;
     if (currentStates[i].skillId == 3){
       cntLightning--;
@@ -1240,6 +1241,7 @@ void selectStateOnDiversity(vector<State> &currentStates, int beamWidth){
       cntShadowClone--;
     }
   }
+  cerr << endl;
   for (int i = 0; i < currentStates.size(); i++){
     if (used[i])continue;
     if (currentStates[i].skillId == 3){//lightning
@@ -1346,7 +1348,10 @@ void think(int depthLimit, int beamWidth=130) {
 	  simulateAttack(nextState, rivalAttacks[j]);
 	  simulateDefence(nextState, skillUseId, skillId, targetPoint);
 	  int tmp = genNextState(nextState, comId, skillId == 5);
+	  // if (comId == 12){
+	  //   if (skillId == )
 
+	  // }
 	  if (tmp == -1){//killed
 	    if (rivalAttacks[j].skillId != -1){//use skill
 	      survive = -1;
@@ -1380,7 +1385,20 @@ void think(int depthLimit, int beamWidth=130) {
 	  if (survive == -2)break;
 	}
 	if (survive != -2){
-	  //	  cerr << skillId << " " << targetPoint.y << " " << targetPoint.x << endl;
+
+	  int comBits = commands[comId];
+	  
+	  int upperBit = comBits / pow5[2];
+	  int lowerBit = comBits - upperBit * pow5[2];
+	  //	  cerr << comId << endl;
+	  // cerr << skillId << " " << targetPoint.y << " " << targetPoint.x << endl;
+	  // for (int id = 0; id < 2; id++){
+	  //   for (int j = 0; j < 2; j++){
+	  //     int comBit = ((id == 0) ? (upperBit / pow5[j]) % pow5[1] : (lowerBit / pow5[j]) % pow5[1]);
+	  //     cout << ds[comBit];
+	  //   }
+	  //   cout << endl;
+	  // }
 	  //	  assert(survive != 1);
 	  State nextState = currentState[depth][k];
 	  Attack nowAttack = Attack(skillRivalId, targetRivalPoint);
@@ -1440,7 +1458,9 @@ void think(int depthLimit, int beamWidth=130) {
       int skillId = currentState[depth][i].skillId;
       int tarX = currentState[depth][i].targetPoint.x;
       int tarY = currentState[depth][i].targetPoint.y;
-      
+      int survive = currentState[depth][i].survive[0];
+      //      cerr << "index = "  << i << endl;
+      //if (survive != 1)continue;
       //my
       int p1x = currentState[depth][i].ninjas[0].x;
       int p1y = currentState[depth][i].ninjas[0].y;
