@@ -8,7 +8,7 @@
 #include <map>
 using namespace std;
 
-const int INF = 876765346;
+const int INF = 300;
 
 const char CELL_EMPTY = '_';
 const char CELL_WALL ='W';
@@ -135,6 +135,7 @@ public:
   //attack phase
   int kill;
   bool attackMode;
+  int cornerClosed;
   State() {
     skillPoint = H = W = -1;
     field.clear();
@@ -179,6 +180,7 @@ public:
     //attack
     kill = -2;
     attackMode = false;
+    cornerClosed = INF;
   }
 
   static State input(int numOfSkills) {
@@ -278,16 +280,16 @@ public:
     if (kill < right.kill){
       return true;
     }
-
-    //very low
-    if (skills[7].cost <= 9){
-      if (killDog < right.killDog){
-	return true;
-      }
-      if (killDog > right.killDog){
-	return false;
-      }
+    //閉じ込められてる
+    if (ninjaConfined && !right.ninjaConfined){
+      return true;
     }
+    //閉じ込められてない
+    if (!ninjaConfined && right.ninjaConfined){
+      return false;
+    }
+
+
     //Update二回術を使って一個多く手に入れた魂は嬉しくない
     if (getSoul - right.getSoul >= 1){
       if (skillNumOfUse - right.skillNumOfUse > 1){
@@ -308,15 +310,26 @@ public:
     if (getSoul > right.getSoul){
       return false;
     }
-    //閉じ込められてる
-    if (ninjaConfined && !right.ninjaConfined){
-      return true;
-    }
-    //閉じ込められてない
-    if (!ninjaConfined && right.ninjaConfined){
-      return false;
-    }
 
+
+    //very low
+    if (skills[7].cost <= 9){
+      if (killDog < right.killDog){
+	return true;
+      }
+      if (killDog > right.killDog){
+	return false;
+      }
+    }
+    // //閉じ込められてる
+    // if (ninjaConfined && !right.ninjaConfined){
+    //   return true;
+    // }
+    // //閉じ込められてない
+    // if (!ninjaConfined && right.ninjaConfined){
+    //   return false;
+    // }
+    
     if (skills[7].cost <= 18){
       if (killDog < right.killDog){
 	return true;
@@ -325,15 +338,15 @@ public:
 	return false;
       }
     }
+    // //cornerに近いかどうか
+    // if (cornerClosed && !right.cornerClosed){
+    //   return true;
+    // }
+    // if (!cornerClosed && right.cornerClosed){
+    //   return false;
+    // }
 
-    if (replNinjaMode && right.replNinjaMode){
-      if (hammingDistance < right.hammingDistance){
-	return true;
-      }
-      if (hammingDistance > right.hammingDistance){
-	return false;
-      }
-    }
+
 
     if (skillPoint < right.skillPoint){
       return true;
@@ -349,6 +362,21 @@ public:
       if (minSoulHammingDistance[0] + minSoulHammingDistance[1]< right.minSoulHammingDistance[0] + right.minSoulHammingDistance[1]){
 	return false;
       }
+      //cornerに近いかどうか
+      if (cornerClosed < right.cornerClosed){
+	return true;
+      }
+      if (cornerClosed > right.cornerClosed){
+	return false;
+      }
+      //忍者のハミング距離
+      if (hammingDistance < right.hammingDistance){
+	return true;
+      }
+      if (hammingDistance > right.hammingDistance){
+	return false;
+      }
+      //前との距離
       if (hammingPreDistance < right.hammingPreDistance){
 	return true;
       }
@@ -755,7 +783,7 @@ void useWhirlslash(const State& nowState, int id, const Order &order, vector<Ord
       }
     }
   }
-  if ((skills[7].cost > 10 && dog >= 3) || (skills[7].cost <= 10 && dog >= 2)){
+  if ((skills[7].cost > 15 && dog >= 4) || (skills[7].cost >= 9 && skills[7].cost <= 15 && dog >= 3) || (skills[7].cost < 9 && dog >= 2)){
     nextOrder.setSkill(id, 7);
     result.emplace_back(nextOrder);
   }
@@ -1316,6 +1344,20 @@ void checkConfined(State &nowState){
   }
   return ;
 }
+void checkNearCorner(State &nowState){
+  for (int id = 0; id < 2; id++){
+    int px = nowState.ninjas[id].x;
+    int py = nowState.ninjas[id].y;
+    int minDist = INF;
+    for (int i = 0; i < 4; i++){
+      int dist = abs(px - cornerX[i]) + abs(py - cornerY[i]);
+      minDist = min(minDist, dist);
+    }
+    nowState.cornerClosed = min(nowState.cornerClosed, minDist);
+  }
+  return ;
+}
+
 
 void attackPhase(const State& myState, const State& rivalState, vector<State> &result){
   vector<Order> rivalOrders;
@@ -1520,6 +1562,7 @@ void think(int depthLimit, int beamWidth=100) {
 	  calculateHammingPreDistance(nextState);
 	  int hammingDistance = calculateHammingDistance(nextState);
 	  checkConfined(nextState);
+	  checkNearCorner(nextState);
 	  if (hammingDistance <= 5){
 	    nextState.replNinjaMode = true;
 	  }
