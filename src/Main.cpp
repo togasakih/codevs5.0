@@ -256,7 +256,6 @@ public:
   }
 
   bool operator < (const State &right) const {
-
     
     for (int i = 0; i < survive.size(); i++){
       if (survive[i] < right.survive[i]){
@@ -313,6 +312,18 @@ public:
       return false;
     }
 
+
+    if (replNinjaMode && right.replNinjaMode){
+      if (hammingDistance < right.hammingDistance){
+	return true;
+      }
+      if (hammingDistance > right.hammingDistance){
+	return false;
+      }      
+    }
+
+
+    
 
     //very low
     if (skills[7].cost <= 9){
@@ -1426,11 +1437,13 @@ void attackPhase(const State& myState, const State& rivalState, vector<State> &r
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
 void think(int depthLimit, int beamWidth=100) {
+
+  int hammingDistance = calculateHammingDistance(myState);
+  if (hammingDistance <= 4){
+    myState.replNinjaMode = true;
+  }
+  
   vector<State> currentState[depthLimit + 1];
-  // checkNearCorner(myState);
-  // if (myState.cornerClosed <= 3){
-  //   myState.escapeCornerMode = true;
-  // }
   attackPhase(myState, rivalState, currentState[0]);
  // currentState[0].emplace_back(myState);
   //depth 0
@@ -1541,10 +1554,11 @@ void think(int depthLimit, int beamWidth=100) {
 	  //additional score
 	  calculateMinDistToSoul(nextState);
 	  calculateHammingPreDistance(nextState);
-	  int hammingDistance = calculateHammingDistance(nextState);
 	  checkConfined(nextState);
 	  checkNearCorner(nextState);
-	  if (hammingDistance <= 5){
+	  
+	  int hammingDistance = calculateHammingDistance(nextState);
+	  if (hammingDistance <= 4){
 	    nextState.replNinjaMode = true;
 	  }
 	  currentState[depth + 1].emplace_back(nextState);
