@@ -1275,54 +1275,7 @@ bool pruningAttack(const State& nowState, const Order& nowOrder, const Attack& n
 }
 
 
-void selectStateOnDiversity(vector<State> &currentStates, int beamWidth){
-  vector<bool> used(currentStates.size(), false);
-  vector<State> nextStates;
-  int cntLightning = beamWidth / 4;
-  int cntShadowClone = beamWidth / 4;
-  
-  for (int i = 0; i < 5; i++){
-    nextStates.push_back(currentStates[i]);
-    cerr << currentStates[i].survive[0] << endl;
-    used[i] = true;
-    if (currentStates[i].skillId == 3){
-      cntLightning--;
-    }
-    if (currentStates[i].skillId == 5){
-      cntShadowClone--;
-    }
-  }
-  cerr << endl;
-  for (int i = 0; i < currentStates.size(); i++){
-    if (used[i])continue;
-    if (currentStates[i].skillId == 3){//lightning
-      if (cntLightning > 0){
-	nextStates.push_back(currentStates[i]);
-	used[i] = true;
-	cntLightning--;
-      }
-    }
-    if (currentStates[i].skillId == 5){
-      if (cntShadowClone > 0){
-	nextStates.push_back(currentStates[i]);
-	used[i] = true;
-	cntShadowClone--;
-      }
-    }
-  }
-  int index = 0;
-  while (nextStates.size() < beamWidth && index < currentStates.size()){
-    if (used[index]){
-      index++;
-      continue;
-    }
-    nextStates.push_back(currentStates[index]);
-    used[index] = true;
-    index++;
-  }
-  currentStates = nextStates;
-  return ;
-}
+
 
 void checkConfined(State &nowState){
 
