@@ -762,11 +762,6 @@ void useWhirlslash(const State& nowState, int id, const Order &order, vector<Ord
 
   return ;
 }
-unsigned long xor128(void){
-  static unsigned long x=123456789,y=362436069,z=521288629,w=88675123;
-  unsigned long t;
-  t=(x^(x<<11));x=y;y=z;z=w; return( w=(w^(w>>19))^(t^(t>>8)) );
-}
 
 void possibleOrder(vector<Order> &result, const State& nowState, int depth, bool useSpecialSkill){
   
