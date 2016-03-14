@@ -129,6 +129,12 @@ public:
   int killDog;
   vector<int> minSoulHammingDistance;
   bool ninjaConfined;
+
+
+
+  //attack phase
+  int kill;
+  bool attackMode;
   State() {
     skillPoint = H = W = -1;
     field.clear();
@@ -169,6 +175,10 @@ public:
     killDog = 0;
     minSoulHammingDistance.clear();
     ninjaConfined = false;
+
+    //attack
+    kill = -2;
+    attackMode = false;
   }
 
   static State input(int numOfSkills) {
@@ -252,6 +262,15 @@ public:
     	return false;
       }
     }
+
+    // //kill
+    // if (kill > right.kill){
+    //   return false;
+    // }
+    // if (kill < right.kill){
+    //   return true;
+    // }
+
     //very low
     if (skills[7].cost <= 9){
       if (killDog < right.killDog){
@@ -260,7 +279,6 @@ public:
       if (killDog > right.killDog){
 	return false;
       }
-
     }
     //Update二回術を使って一個多く手に入れた魂は嬉しくない
     if (getSoul - right.getSoul >= 1){
@@ -667,7 +685,7 @@ bool checkReachDeath(const State& myState, const State& rivalState){
 
 
 void possibleAttack(vector<Attack> &result, const State& myState, const State& rivalState){
-  result.emplace_back(Attack());//None
+  //  result.emplace_back(Attack());//None
   if (!checkReachDeath(myState, rivalState))return ;
   attackFallRock(myState, rivalState, result);
   attackShadowClone(myState, rivalState, result);
@@ -749,9 +767,12 @@ void possibleOrder(vector<Order> &result, const State& nowState, int depth, bool
   for (int i = 0; i < commands.size(); i++){
       nowOrder.setOrder(i);
       if (validateOrder(nowState, i, -1)){
-        	result.emplace_back(nowOrder);
+	result.emplace_back(nowOrder);
       }
-      //result.emplace_back(nowOrder);
+
+      if (depth == 0 && nowState.attackMode == true){
+       	continue;
+      }
       
       if (depth == 0 || useSpecialSkill){
 	if (!useSpecialSkill){
@@ -1290,6 +1311,82 @@ void checkConfined(State &nowState){
   }
   return ;
 }
+
+void attackPhase(const State& myState, const State& rivalState, vector<State> &result){
+  vector<Order> rivalOrders;
+  possibleOrder(rivalOrders, rivalState, 0, false);
+  vector<Attack> myAttacks;
+  myAttacks.emplace_back(Attack());
+  possibleAttack(myAttacks, rivalState, myState);
+  //  cerr << myAttacks.size() << " " << rivalOrders.size() << endl;
+  for (int i = 0; i < myAttacks.size(); i++){
+    int kill = 1;
+    int skillId = myAttacks[i].skillId;
+    Point targetPoint = myAttacks[i].targetPoint;
+    for (int j = 0; j < rivalOrders.size(); j++){
+
+      int comRivalId = rivalOrders[j].comId;
+      int skillRivalUseId = rivalOrders[j].skillUseId;
+      int skillRivalId = rivalOrders[j].skillId;
+      int skillRivalCost = rivalOrders[j].skillCost;
+      Point targetRivalPoint = rivalOrders[j].targetPoint;
+      //nextState
+
+      State nextRivalState = rivalState;
+      simulateAttack(nextRivalState, myAttacks[i]);
+      simulateDefence(nextRivalState, skillRivalUseId, skillRivalId, targetRivalPoint);
+      int tmp = genNextState(nextRivalState, comRivalId, skillRivalId == 5);
+      if (tmp == -1){//killed
+	if (myAttacks[j].skillId != -1){//use skill
+	}else{//unused skill
+	  break;
+	}
+      }
+      if (tmp == 1){//survive
+	if (skillRivalId == 5 || myAttacks[j].skillId == 6){//use shadowClaone
+	  simulateNextDog(nextRivalState, rivalOrders[j], myAttacks[i]);
+	  bool flagDeath = false;
+	  for (int id = 0; id < 2; id++){
+	    int x = nextRivalState.ninjas[id].x;
+	    int y = nextRivalState.ninjas[id].y;
+	    if (nextRivalState.field[y][x].containsDog){//death
+	      flagDeath = true;
+	      break;
+	      if (myAttacks[i].skillId != -1){//use skillId
+
+	      }else{//unused skill
+
+	      }
+	    }
+	  }
+	  if (!flagDeath){//Survive!!!!!!!!!!!!!!!!!!!
+	    kill = -2;
+	    break;
+	  }
+	}else{
+	  kill = -2;
+	  break;
+	}
+      }
+    }
+    if (skillId == -1 || kill == 1){//Kill!!!!!!!!!!!!!!!
+      State nextMyState = myState;
+      nextMyState.kill = kill;
+      if (skillId != -1){//use attack
+	cerr << "NEXT KILL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
+	nextMyState.skillId = skillId;
+	nextMyState.targetPoint = targetPoint;
+	nextMyState.attackMode = true;
+	nextMyState.skillPoint -= skills[skillId].cost;
+      }
+      result.emplace_back(nextMyState);
+    }
+  }
+
+  return ;
+}
+
+
 /*
  * このAIについて
  * - 各忍者について、 thinkByNinja(id) を2回行います。
@@ -1301,29 +1398,27 @@ void checkConfined(State &nowState){
  */
 void think(int depthLimit, int beamWidth=80) {
   vector<State> currentState[depthLimit + 1];
+  //  attackPhase(myState, rivalState, currentState[0]);
   currentState[0].emplace_back(myState);
+  cerr << currentState[0].size() << endl;
   //depth 0
   int cntChallenge = 0;
   for (int depth = 0; depth < depthLimit; depth++){
     if (currentState[depth].size() > beamWidth){
       sort(currentState[depth].rbegin(), currentState[depth].rend());
-      //      selectStateOnDiversity(currentState[depth], beamWidth);
       currentState[depth].erase(currentState[depth].begin() + beamWidth, currentState[depth].end());
     }
     cntChallenge++;
-    //    cerr << depth << " " << cntChallenge << endl;          
+
     for (int k = 0; k < currentState[depth].size(); k++){
       vector<Order> myOrders;
-      //      cerr << cntChallenge << endl;
-
       possibleOrder(myOrders,currentState[depth][k], depth, cntChallenge >= 2);
       vector<Attack> rivalAttacks;
-      if (depth < 1){
+      rivalAttacks.emplace_back(Attack());//none
+      if (depth == 0){
 	possibleAttack(rivalAttacks, currentState[depth][k], rivalState);
-      }else{
-	rivalAttacks.emplace_back(Attack());
       }
-      //    cerr <<currentState[depth].size() << " " << myOrders.size() << " " << rivalAttacks.size() << endl;      
+      //cerr <<currentState[depth].size() << " " << myOrders.size() << " " << rivalAttacks.size() << endl;      
       for (int i = 0; i < myOrders.size(); i++){
 	int survive = 1;
 	int comId = myOrders[i].comId;
@@ -1387,16 +1482,6 @@ void think(int depthLimit, int beamWidth=80) {
 	  
 	  int upperBit = comBits / pow5[2];
 	  int lowerBit = comBits - upperBit * pow5[2];
-	  //	  cerr << comId << endl;
-	  // cerr << skillId << " " << targetPoint.y << " " << targetPoint.x << endl;
-	  // for (int id = 0; id < 2; id++){
-	  //   for (int j = 0; j < 2; j++){
-	  //     int comBit = ((id == 0) ? (upperBit / pow5[j]) % pow5[1] : (lowerBit / pow5[j]) % pow5[1]);
-	  //     cout << ds[comBit];
-	  //   }
-	  //   cout << endl;
-	  // }
-	  //	  assert(survive != 1);
 	  State nextState = currentState[depth][k];
 	  Attack nowAttack = Attack(skillRivalId, targetRivalPoint);
 	  //ignore
@@ -1407,18 +1492,16 @@ void think(int depthLimit, int beamWidth=80) {
 	  simulateNextDog(nextState, myOrders[i], nowAttack);//attack
 	  
 	  nextState.survive.emplace_back(survive);
-	  if (depth == 0){
+	  if (depth == 0){//use skill
 	    nextState.commandId = comId;
-	    nextState.skillUseId = skillUseId;
 	    nextState.skillId = skillId;
+	    nextState.skillUseId = skillUseId;
 	    nextState.targetPoint = targetPoint;
 	  }
-	  if (skillId != -1){
+	  if (skillId != -1){//useSkill
 	    nextState.skillNumOfUse += 1;
 	  }
 	  nextState.skillPoint -= skillCost;
-
-
 	  //additional score
 	  calculateMinDistToSoul(nextState);
 	  calculateHammingPreDistance(nextState);
@@ -1464,22 +1547,22 @@ void think(int depthLimit, int beamWidth=80) {
       int p2x = currentState[depth][i].ninjas[1].x;
       int p2y = currentState[depth][i].ninjas[1].y;
 
-      cerr << "comId = " << comId << " " << currentState[depth][i].survive[0] << endl;
+      cerr << "comId = " << comId << " " << currentState[depth][i].survive[0] << " " << currentState[depth][i].kill << endl;
       cerr << "p1x = " << p1x << " " << "p1y = " << p1y << endl;
       cerr << "p2x = " << p2x << " " << "p2y = " << p2y << endl;
-      //      showBoard(currentState[depth][i].field);
+
       if (skillId != -1){//use skill
-	if (skillId == 3){
-	  cout << 3 << endl;
-	  cout << 3 << " " << tarY << " " << tarX << endl;
+	cout << 3 << endl;
+	if (skillId == 0){
+	  cout << skillId << endl;
 	}
-	if (skillId == 5){
-	  cout << 3 << endl;
-	  cout << 5 << " " << tarY << " " << tarX << endl;	  
+	if (skillId != 7 && skillId != 0){//not boost and kaitengiri
+
+	  cout << skillId << " " << tarY << " " << tarX << endl;
 	}
+	
 	if (skillId == 7){
-	  cout << 3 << endl;
-	  cout << 7 << " " << skillUseId << endl;
+	  cout << skillId << " " << skillUseId << endl;
 	}
 
 	const int comBits = commands[comId];
