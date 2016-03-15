@@ -312,17 +312,6 @@ public:
       return false;
     }
 
-
-    // if (replNinjaMode && right.replNinjaMode){
-    //   if (hammingDistance < right.hammingDistance){
-    // 	return true;
-    //   }
-    //   if (hammingDistance > right.hammingDistance){
-    // 	return false;
-    //   }      
-    // }
-
-
     
 
     //very low
@@ -353,21 +342,22 @@ public:
     //   return false;
     // }
     
-    if (skills[7].cost <= 18){
-      if (killDog < right.killDog){
-	return true;
-      }
-      if (killDog > right.killDog){
-	return false;
-      }
-    }
+    // if (skills[7].cost <= 18){
+    //   if (killDog < right.killDog){
+    // 	return true;
+    //   }
+    //   if (killDog > right.killDog){
+    // 	return false;
+    //   }
+    // }
     // //cornerに近いかどうか
     // if (cornerClosed && !right.cornerClosed){
     //   return true;
     // }
     // if (!cornerClosed && right.cornerClosed){
     //   return false;
-    // }
+
+    //どん詰まり
     if (minDistSoulById[0] + minDistSoulById[1] == 2 * INF && right.minDistSoulById[0] + right.minDistSoulById[1] != 2 * INF){
       return true;
     }
