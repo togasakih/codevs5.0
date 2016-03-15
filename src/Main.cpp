@@ -42,6 +42,9 @@ public:
   }
 };
 
+vector<int> firstDist,secondDist;
+vector<Point> firstPoint,secondPoint;
+
 class Skill {
 public:
   int id, cost;
@@ -195,6 +198,8 @@ public:
     //init global
     CLOSED.resize(st.H, vector<int>(st.W, 0));
     dist.resize(st.H, vector<int>(st.W, 0));
+
+    
     
     st.field.clear();
 
@@ -212,6 +217,14 @@ public:
     cin >> numOfNinjas;
     st.ninjas.clear();
     st.minDistSoulById.clear();
+
+
+    //global
+    firstDist.resize(2, INF);
+    secondDist.resize(2, INF);
+    firstPoint.resize(2);
+    secondPoint.resize(2);
+    
     for (int i = 0; i < numOfNinjas; i++) {
       Character ninja = Character::input();
       st.ninjas.emplace_back(ninja);
@@ -881,7 +894,6 @@ vector<int> createCommands(){
 
   return result;
 }
-vector<tuple<int, int, Point> > specialDist;//first dist second ninja id soula id
 
 void initMinDistSoulById(vector<int> &minDistSoulById, int val){
   for (int i = 0; i < minDistSoulById.size(); i++){
@@ -889,10 +901,18 @@ void initMinDistSoulById(vector<int> &minDistSoulById, int val){
   }
   return ;
 }
+// vector<int> firsetDist,firstPoint;
+// vector<Point> firstPoint,secondPoint;
 void calculateMinDistToSoul(State &nowState){
   //  initBoard(dist, INF);
   initMinDistSoulById(nowState.minDistSoulById, INF);//init
+  
+  initMinDistSoulById(firstDist, INF);
+  initMinDistSoulById(secondDist, INF);
+    
+  
   for (int id = 0; id < 2; id++){
+      
     int sx = nowState.ninjas[id].x;
     int sy = nowState.ninjas[id].y;
     queue<Search> open;
@@ -918,25 +938,43 @@ void calculateMinDistToSoul(State &nowState){
 	  swap(field[nny][nnx].kind, field[ny][nx].kind);
 	}
 	if (field[ny][nx].containsSoul){
-	  specialDist.emplace_back(make_tuple(sc.dist, id, Point(nx, ny)));
+	  if (firstDist[id] > sc.dist + 1){//first
+	    //update second
+	    secondDist[id] = firstDist[id];
+	    secondPoint[id] = firstPoint[id];
+	    
+	    //update first
+	    firstDist[id] = sc.dist + 1;
+	    firstPoint[id] = Point(nx, ny);
+	    
+	  }else if(secondDist[id] > sc.dist + 1){//only update second
+	    secondDist[id] = sc.dist + 1;
+	    secondPoint[id] = Point(nx, ny);
+	  }
+	}
+	if (firstDist[id] != INF && secondDist[id] != INF){
+	  goto NextNinjaId;
 	}
 	CLOSED[ny][nx] = true;
 	open.push(Search(nx, ny, sc.dist + 1));
       }
     }
+  NextNinjaId:;
   }
-  sort(specialDist.begin(), specialDist.end());
 
-  Point tabooPoint(-1, -1);
-  for (int i = 0; i < specialDist.size(); i++){
-    int distTmp,ninjaId;
-    Point soulPoint;
-    tie(distTmp, ninjaId, soulPoint) = specialDist[i];
-    if (nowState.minDistSoulById[ninjaId] == INF && (tabooPoint.x != soulPoint.x && tabooPoint.y != soulPoint.y)){
-      nowState.minDistSoulById[ninjaId] = distTmp;
-      tabooPoint = soulPoint;
+  
+  if (firstPoint[0] == firstPoint[1]){//equal
+    if (firstDist[0] <= firstDist[1]){
+      nowState.minDistSoulById[0] = firstDist[0];
+      nowState.minDistSoulById[1] = secondDist[1];
     }
-    if (nowState.minDistSoulById[0] != INF && nowState.minDistSoulById[1] != INF)break;
+    if (firstDist[0] > firstDist[1]){
+      nowState.minDistSoulById[0] = secondDist[0];
+      nowState.minDistSoulById[1] = firstDist[1];
+    }
+  }else{//not equal
+    nowState.minDistSoulById[0] = firstDist[0];
+    nowState.minDistSoulById[1] = firstDist[1];
   }
 
   //calculateminDist
@@ -950,7 +988,9 @@ void calculateMinDistToSoul(State &nowState){
       int sy = nowState.souls[i].y;
       if (nowState.minSoulHammingDistance[id] > abs(px - sx) + abs(py - sy)) {
 	nowState.minSoulHammingDistance[id] = abs(px - sx) + abs(py - sy);
-	taboo = id;
+	if (id == 0){
+	  taboo = id;
+	}
       }
     }
   }
@@ -1434,7 +1474,7 @@ void think(int depthLimit, int beamWidth=250) {
       if (depth == 0){
 	possibleAttack(rivalAttacks, currentState[depth][k], rivalState);
       }
-      //cerr <<currentState[depth].size() << " " << myOrders.size() << " " << rivalAttacks.size() << endl;      
+      //      cerr <<currentState[depth].size() << " " << myOrders.size() << " " << rivalAttacks.size() << endl;      
       for (int i = 0; i < myOrders.size(); i++){
 	int survive = 1;
 	int comId = myOrders[i].comId;
