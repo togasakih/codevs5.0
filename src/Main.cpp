@@ -8,7 +8,7 @@
 #include <map>
 using namespace std;
 
-const int INF = 300;
+const int INF = 500;
 
 const char CELL_EMPTY = '_';
 const char CELL_WALL ='W';
@@ -313,14 +313,14 @@ public:
     }
 
 
-    if (replNinjaMode && right.replNinjaMode){
-      if (hammingDistance < right.hammingDistance){
-	return true;
-      }
-      if (hammingDistance > right.hammingDistance){
-	return false;
-      }      
-    }
+    // if (replNinjaMode && right.replNinjaMode){
+    //   if (hammingDistance < right.hammingDistance){
+    // 	return true;
+    //   }
+    //   if (hammingDistance > right.hammingDistance){
+    // 	return false;
+    //   }      
+    // }
 
 
     
@@ -368,8 +368,12 @@ public:
     // if (!cornerClosed && right.cornerClosed){
     //   return false;
     // }
-
-
+    if (minDistSoulById[0] + minDistSoulById[1] == 2 * INF && right.minDistSoulById[0] + right.minDistSoulById[1] != 2 * INF){
+      return true;
+    }
+    if (minDistSoulById[0] + minDistSoulById[1] != 2 * INF && right.minDistSoulById[0] + right.minDistSoulById[1] == 2 * INF){
+      return false;
+    }
 
     if (skillPoint < right.skillPoint){
       return true;
@@ -1438,10 +1442,10 @@ void attackPhase(const State& myState, const State& rivalState, vector<State> &r
  */
 void think(int depthLimit, int beamWidth=100) {
 
-  int hammingDistance = calculateHammingDistance(myState);
-  if (hammingDistance <= 4){
-    myState.replNinjaMode = true;
-  }
+  //  int hammingDistance = calculateHammingDistance(myState);
+  // if (hammingDistance <= 4){
+  //   myState.replNinjaMode = true;
+  // }
   
   vector<State> currentState[depthLimit + 1];
   attackPhase(myState, rivalState, currentState[0]);
@@ -1558,9 +1562,9 @@ void think(int depthLimit, int beamWidth=100) {
 	  checkNearCorner(nextState);
 	  
 	  int hammingDistance = calculateHammingDistance(nextState);
-	  if (hammingDistance <= 4){
-	    nextState.replNinjaMode = true;
-	  }
+	  // if (hammingDistance <= 4){
+	  //   nextState.replNinjaMode = true;
+	  // }
 	  currentState[depth + 1].emplace_back(nextState);
 	}
       }
@@ -1677,7 +1681,7 @@ int main() {
   int turn = 1;
   while (input()) {
     //cerr << "turn = " << turn++ << endl;
-    think(3);
+    think(4);
     cout.flush();
 
   }
