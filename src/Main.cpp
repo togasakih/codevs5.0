@@ -128,7 +128,6 @@ public:
   int killDog;
   vector<int> minSoulHammingDistance;
   bool ninjaConfined;
-  bool escapeCornerMode;
 
 
   //attack phase
@@ -178,7 +177,6 @@ public:
     attackMode = false;
     cornerClosed = INF;
 
-    escapeCornerMode = false;
   }
 
   static State input(int numOfSkills) {
@@ -277,16 +275,8 @@ public:
       if (kill < right.kill){
 	return true;
       }
-
     }
-
-    //kill
-    if (kill > right.kill){
-      return false;
-    }
-    if (kill < right.kill){
-      return true;
-    }
+    
     //閉じ込められてる
     if (ninjaConfined && !right.ninjaConfined){
       return true;
@@ -330,38 +320,6 @@ public:
       }
     }
 
-    //escapemode
-    // if (escapeCornerMode && right.escapeCornerMode){
-    //   if (cornerClosed < right.cornerClosed){
-    // 	return true;
-    //   }
-    //   if (cornerClosed > right.cornerClosed){
-    // 	return false;
-    //   }
-    // }
-    // //閉じ込められてる
-    // if (ninjaConfined && !right.ninjaConfined){
-    //   return true;
-    // }
-    // //閉じ込められてない
-    // if (!ninjaConfined && right.ninjaConfined){
-    //   return false;
-    // }
-    
-    // if (skills[7].cost <= 18){
-    //   if (killDog < right.killDog){
-    // 	return true;
-    //   }
-    //   if (killDog > right.killDog){
-    // 	return false;
-    //   }
-    // }
-    // //cornerに近いかどうか
-    // if (cornerClosed && !right.cornerClosed){
-    //   return true;
-    // }
-    // if (!cornerClosed && right.cornerClosed){
-    //   return false;
 
     //どん詰まり
     if (minDistSoulById[0] + minDistSoulById[1] == 2 * INF && right.minDistSoulById[0] + right.minDistSoulById[1] != 2 * INF){
