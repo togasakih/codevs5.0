@@ -100,9 +100,8 @@ public:
   vector<Character> ninjas;
   vector<Character> dogs;
   vector<Point> souls;
-  vector<int> skillCount;
+  //  vector<int> skillCount;
   //togasaki
-  double searchValue;
   int getSoul;
   //  bool fail;
   int commandId;
@@ -120,9 +119,6 @@ public:
   vector<int> survive;
   int reachDeath;
   int hammingDistance;
-  int stepNum;
-  bool panicMode;
-  bool replNinjaMode;
 
   int preNinjaX0;
   int preNinjaY0;
@@ -146,9 +142,9 @@ public:
     ninjas.clear();
     dogs.clear();
     souls.clear();
-    skillCount.clear();
+    //    skillCount.clear();
     //togasaki
-    searchValue = 0;
+
     getSoul = 0;
     //    fail = false;
     commandId = -1;
@@ -167,8 +163,6 @@ public:
     reachDeath = 0;
     hammingDistance = 0;
 
-    panicMode = false;
-    replNinjaMode = false;
 
     preNinjaX0 = -1;
     preNinjaY0 = -1;
@@ -259,11 +253,11 @@ public:
       st.field[y][x].containsSoul = true;
     }
 
-    st.skillCount = vector<int>();
+    ///    st.skillCount = vector<int>();
     for (int i = 0; i < numOfSkills; i++) {
       int count;
       cin >> count;
-      st.skillCount.emplace_back(count);
+      //      st.skillCount.emplace_back(count);
     }
 
     return st;
@@ -1145,9 +1139,7 @@ int genNextState(State &nextState, int comId, bool shadow=false){
       nextState.field[ny][nx].containsNinja = true;
       nextState.ninjas[id].x = nx;
       nextState.ninjas[id].y = ny;
-      if (comBit != 4){
-	nextState.stepNum++;
-      }
+
     }
     //next killed by dog
   }
