@@ -28,6 +28,7 @@ const int pow5[] = {1, 5, 25, 125, 625, 3125, 15625};
 //global dist
 vector<vector<int> > dist;
 vector<vector<int> > CLOSED;
+
 class Point {
 public:
   int x, y;
@@ -78,6 +79,8 @@ public:
     return !containsSoul & !containsNinja & !containsDog;
   }
 };
+//global
+vector<vector<Cell> > FIELD;
 
 class Character : public Point {
 public:
@@ -186,9 +189,10 @@ public:
     cin >> st.H >> st.W;
     //togasaki
     //init global
+
     CLOSED.resize(st.H, vector<int>(st.W, 0));
     dist.resize(st.H, vector<int>(st.W, 0));
-
+    FIELD.resize(st.H, vector<Cell>(st.W));
     
     
     st.field.clear();
@@ -502,6 +506,17 @@ void useShadowCloneCornerPoint(const State &nowState, const Order &order, vector
   }
   return ;
 }
+void copyField(vector<vector<Cell> > &field, const vector<vector<Cell> > &copySource){
+  
+  for (int i = 0; i < field.size(); i++){
+    for (int j = 0; j < field[0].size(); j++){
+      field[i][j] = copySource[i][j];
+    }
+  }
+  return ;
+}
+
+
 void useShadowCloneFarthestPoint(const State &nowState, const Order &order, vector<Order> &result){
   if (nowState.skillPoint < skills[5].cost){
     return ;
@@ -520,18 +535,20 @@ void useShadowCloneFarthestPoint(const State &nowState, const Order &order, vect
     //initboard
     initBoard(CLOSED, false);
     //    vector< vector<bool> > CLOSED(nowState.H, vector<bool>(nowState.W, false));
-    vector< vector<Cell> > field = nowState.field;
+    //    vector< vector<Cell> > field = nowState.field;
+    //copy
+    copyField(FIELD, nowState.field);
     CLOSED[sy][sx] = true;
     dist[sy][sx] = 0;	
     open.push(Search(sx, sy, 0));
     while (!open.empty()){
       Search sc = open.front();
       open.pop();
-      if (!field[sy][sx].isEmpty())continue;
+      if (!FIELD[sy][sx].isEmpty())continue;
       for (int dir = 0; dir < 4; dir++){
 	int nx = sc.x + dx[dir];
 	int ny = sc.y + dy[dir];
-	if (field[ny][nx].isWall())continue;
+	if (FIELD[ny][nx].isWall())continue;
 	if (CLOSED[ny][nx])continue;
 	CLOSED[ny][nx] = true;
 	if (dist[ny][nx] > sc.dist + 1){
@@ -868,26 +885,27 @@ void calculateMinDistToSoul(State &nowState){
     queue<Search> open;
     //initBoard
     initBoard(CLOSED, false);
-    vector< vector<Cell> > field = nowState.field;
+    //vector< vector<Cell> > field = nowState.field;
+    copyField(FIELD, nowState.field);
     CLOSED[sy][sx] = true;
     open.push(Search(sx, sy, 0));
     while (!open.empty()){
       Search sc = open.front();
       open.pop();
-      if (!field[sy][sx].isEmpty())continue;
+      if (!FIELD[sy][sx].isEmpty())continue;
       for (int dir = 0; dir < 4; dir++){
 	int nx = sc.x + dx[dir];
 	int ny = sc.y + dy[dir];
-	if (field[ny][nx].isWall())continue;
+	if (FIELD[ny][nx].isWall())continue;
 	if (CLOSED[ny][nx])continue;
-       	if (field[ny][nx].containsDog)continue;
-	if (field[ny][nx].isObject()){
+       	if (FIELD[ny][nx].containsDog)continue;
+	if (FIELD[ny][nx].isObject()){
 	  int nnx = nx + dx[dir];
 	  int nny = ny + dy[dir];
-	  if (!field[nny][nnx].isEmpty())continue;
-	  swap(field[nny][nnx].kind, field[ny][nx].kind);
+	  if (!FIELD[nny][nnx].isEmpty())continue;
+	  swap(FIELD[nny][nnx].kind, FIELD[ny][nx].kind);
 	}
-	if (field[ny][nx].containsSoul){
+	if (FIELD[ny][nx].containsSoul){
 	  if (firstDist[id] > sc.dist + 1){//first
 	    //update second
 	    secondDist[id] = firstDist[id];
