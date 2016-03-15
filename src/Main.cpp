@@ -117,7 +117,6 @@ public:
   Point targetRivalPoint;
   
   vector<int> survive;
-  int reachDeath;
   int hammingDistance;
 
   int preNinjaX0;
@@ -160,7 +159,6 @@ public:
     targetRivalPoint = Point(-1,-1);
     
     survive.clear();
-    reachDeath = 0;
     hammingDistance = 0;
 
 
@@ -989,35 +987,9 @@ void calculateMinDistToSoul(State &nowState){
     }
   }
   return ;
-
 }
 
-void checkReachDeath(State& nowState){
-  for (int id = 0; id < 2; id++){
-    int x = nowState.ninjas[id].x;
-    int y = nowState.ninjas[id].y;
-    int wall = 0;
-    int rock = 0;
-    int dog = 0;
-    for (int k = 0; k < 4; k++){
-      int nx = x + dx[k];
-      int ny = y + dy[k];
-      if (nowState.field[ny][nx].containsDog){
-	dog++;
-      }
-      if (nowState.field[ny][nx].isObject()){
-	rock++;
-      }
-      if (nowState.field[ny][nx].isWall()){
-	wall++;
-      }
-    }
-    if (dog > 0){
-      nowState.reachDeath = dog + rock;
-    }
-  }
 
-}
 void simulateNextDog(State &nowState, const Order &myOrder, const Attack& rivalAttack){
   //initBoard
   initBoard(dist, INF);
