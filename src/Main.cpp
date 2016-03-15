@@ -773,23 +773,23 @@ bool validateOrder(const State& nowState, int comId, int skillId){
       if (nowState.field[ny][nx].isWall()){
 	return false;
       }
-      // if (nowState.field[ny][nx].isObject()){
-      // 	int nnx = nx + dx[comBit];	
-      // 	int nny = ny + dy[comBit];
-      // 	if (!nowState.field[nny][nnx].isEmpty() || nowState.field[nny][nnx].containsDog || nowState.field[nny][nnx].containsNinja){
-      // 	  if (skillId != 3 || skillId != 5){
-      // 	    return false;
-      // 	  }
-      // 	}
-      // }
+      if (nowState.field[ny][nx].isObject()){
+      	int nnx = nx + dx[comBit];	
+      	int nny = ny + dy[comBit];
+      	if (!nowState.field[nny][nnx].isEmpty() || nowState.field[nny][nnx].containsDog || nowState.field[nny][nnx].containsNinja){
+      	  if (skillId != 3 || skillId != 5){
+      	    return false;
+      	  }
+      	}
+      }
     }
-     // for (int k = 0; k < 5; k++){
-     //   int pnx = nx + dx[k];
-     //   int pny = ny + dy[k];
-     //   if (nowState.field[pny][pnx].containsDog && skillId != 5){//unused shadowclone
-     // 	return false;
-     //   }
-     // }
+     for (int k = 0; k < 5; k++){
+       int pnx = nx + dx[k];
+       int pny = ny + dy[k];
+       if (nowState.field[pny][pnx].containsDog && skillId != 5){//unused shadowclone
+     	return false;
+       }
+     }
   }
   return true;
 }
@@ -839,6 +839,7 @@ void possibleOrder(vector<Order> &result, const State& nowState, int depth, bool
 	  useShadowCloneFarthestPoint(nowState, nowOrder, result);
 	  useShadowCloneCornerPoint(nowState, nowOrder, result);
 	  useLightning(nowState, nowOrder, result);
+	  useShadowClone(nowState, nowOrder, result);
 	  if (skills[7].cost <= 20){
 	    for (int id = 0; id < 2; id++){
 	      useWhirlslash(nowState, id, nowOrder,result);
@@ -848,7 +849,7 @@ void possibleOrder(vector<Order> &result, const State& nowState, int depth, bool
 	//7
 	if (useSpecialSkill){
 	  //2
-	  useShadowClone(nowState, nowOrder, result);
+
 	  for (int id = 0; id < 2; id++){
 	    useWhirlslash(nowState, id, nowOrder,result,useSpecialSkill);
 	  }
@@ -1440,7 +1441,7 @@ void attackPhase(const State& myState, const State& rivalState, vector<State> &r
  * -- 「超高速」のみを使用します。
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
-void think(int depthLimit, int beamWidth=100) {
+void think(int depthLimit, int beamWidth=250) {
 
   //  int hammingDistance = calculateHammingDistance(myState);
   // if (hammingDistance <= 4){
@@ -1681,7 +1682,7 @@ int main() {
   int turn = 1;
   while (input()) {
     //cerr << "turn = " << turn++ << endl;
-    think(4);
+    think(5);
     cout.flush();
 
   }
