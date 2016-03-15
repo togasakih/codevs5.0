@@ -6,6 +6,7 @@
 #include <set>
 #include <cassert>
 #include <map>
+#include <tuple>
 using namespace std;
 
 const int INF = 500;
@@ -880,19 +881,23 @@ vector<int> createCommands(){
 
   return result;
 }
+vector<tuple<int, int, Point> > specialDist;//first dist second ninja id soula id
 
+void initMinDistSoulById(vector<int> &minDistSoulById, int val){
+  for (int i = 0; i < minDistSoulById.size(); i++){
+    minDistSoulById[i] = val;
+  }
+  return ;
+}
 void calculateMinDistToSoul(State &nowState){
-  initBoard(dist, INF);
-  //  vector<vector<int> > dist(nowState.H, vector<int>(nowState.W, INF));
-  
-  int cnt = 0;
-  for (int id = 0; id < 1; id++){
+  //  initBoard(dist, INF);
+  initMinDistSoulById(nowState.minDistSoulById, INF);//init
+  for (int id = 0; id < 2; id++){
     int sx = nowState.ninjas[id].x;
     int sy = nowState.ninjas[id].y;
     queue<Search> open;
     //initBoard
     initBoard(CLOSED, false);
-    //    vector< vector<bool> > CLOSED(nowState.H, vector<bool>(nowState.W, false));
     vector< vector<Cell> > field = nowState.field;
     CLOSED[sy][sx] = true;
     open.push(Search(sx, sy, 0));
@@ -913,54 +918,25 @@ void calculateMinDistToSoul(State &nowState){
 	  swap(field[nny][nnx].kind, field[ny][nx].kind);
 	}
 	if (field[ny][nx].containsSoul){
-	  dist[ny][nx] = sc.dist;
-	  if (cnt == 0){
-	    nowState.minDistSoulById[id] = sc.dist;
-	  }
-	  cnt++;
+	  specialDist.emplace_back(make_tuple(sc.dist, id, Point(nx, ny)));
 	}
 	CLOSED[ny][nx] = true;
 	open.push(Search(nx, ny, sc.dist + 1));
       }
     }
   }
+  sort(specialDist.begin(), specialDist.end());
 
-  for (int id = 1; id <= 1; id++){
-    int sx = nowState.ninjas[id].x;
-    int sy = nowState.ninjas[id].y;
-    queue<Search> open;
-    //initBoard
-    //    vector< vector<bool> > CLOSED(nowState.H, vector<bool>(nowState.W, false));
-    initBoard(CLOSED, false);
-    //    vector< vector<bool> > CLOSED(nowState.H, vector<bool>(nowState.W, false));
-    vector< vector<Cell> > field = nowState.field;
-    CLOSED[sy][sx] = true;
-    open.push(Search(sx, sy, 0));
-    while (!open.empty()){
-      Search sc = open.front();
-      open.pop();
-      if (!field[sy][sx].isEmpty())continue;
-      for (int dir = 0; dir < 4; dir++){
-	int nx = sc.x + dx[dir];
-	int ny = sc.y + dy[dir];
-	if (field[ny][nx].isWall())continue;
-	if (CLOSED[ny][nx])continue;
-	if (field[ny][nx].containsDog)continue;
-	if (field[ny][nx].isObject()){
-	  int nnx = nx + dx[dir];
-	  int nny = ny + dy[dir];
-	  if (!field[nny][nnx].isEmpty())continue;
-	  swap(field[nny][nnx].kind, field[ny][nx].kind);
-	}
-	if (field[ny][nx].containsSoul && dist[ny][nx] > sc.dist + 1){
-	  dist[ny][nx] = sc.dist + 1;
-	  nowState.minDistSoulById[id] = sc.dist;
-	  return ;
-	}
-	CLOSED[ny][nx] = true;
-	open.push(Search(nx, ny, sc.dist + 1));
-      }
+  Point tabooPoint(-1, -1);
+  for (int i = 0; i < specialDist.size(); i++){
+    int distTmp,ninjaId;
+    Point soulPoint;
+    tie(distTmp, ninjaId, soulPoint) = specialDist[i];
+    if (nowState.minDistSoulById[ninjaId] == INF && (tabooPoint.x != soulPoint.x && tabooPoint.y != soulPoint.y)){
+      nowState.minDistSoulById[ninjaId] = distTmp;
+      tabooPoint = soulPoint;
     }
+    if (nowState.minDistSoulById[0] != INF && nowState.minDistSoulById[1] != INF)break;
   }
 
   //calculateminDist
