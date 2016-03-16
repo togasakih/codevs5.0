@@ -268,15 +268,6 @@ public:
 	return true;
       }
     }
-    //very low
-    if (skills[7].cost <= 9){
-      if (killDog < right.killDog){
-	return true;
-      }
-      if (killDog > right.killDog){
-	return false;
-      }
-    }
     
     //閉じ込められてる
     if (ninjaConfined && !right.ninjaConfined){
@@ -297,9 +288,21 @@ public:
 	return false;
       }
     }
+
+
+    
     //二個以上は嬉しいよ
     if (getSoul - right.getSoul >= 2){
       return false;
+    }
+    //very low
+    if (skills[7].cost <= 9){
+      if (killDog < right.killDog){
+	return true;
+      }
+      if (killDog > right.killDog){
+	return false;
+      }
     }
 
     if (getSoul < right.getSoul){
@@ -333,6 +336,11 @@ public:
     if (skillPoint > right.skillPoint){
       return false;
     }
+
+
+
+    
+
     if (minDistSoulById[0] + minDistSoulById[1] ==  right.minDistSoulById[0] + right.minDistSoulById[1]){
       if (minSoulHammingDistance[0] + minSoulHammingDistance[1] > right.minSoulHammingDistance[0] + right.minSoulHammingDistance[1]){
 	return true;
@@ -1639,7 +1647,7 @@ int main() {
   cout.flush();
   commands = createCommands();
   initGlobal();
-  Int turn = 1;
+  int turn = 1;
   while (input()) {
     //cerr << "turn = " << turn++ << endl;
 
