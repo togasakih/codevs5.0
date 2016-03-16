@@ -8,8 +8,9 @@
 #include <map>
 #include <tuple>
 using namespace std;
+//global
 
-const int INF = 500;
+const int INF = 255;
 
 const char CELL_EMPTY = '_';
 const char CELL_WALL ='W';
@@ -18,16 +19,13 @@ const char CELL_OBJECT = 'O';
 const int dx[] =    {  0,   1,   0,  -1,   0};
 const int dy[] =    { -1,   0,   1,   0,   0};
 const string ds[] = {"U", "R", "D", "L",  ""};
-//togasaki
 const int dogDx[] =    {  0,   -1,   1,  0,   0};//U L R D
 const int dogDy[] =    { -1,   0,   0,   1,   0};
 const int cornerX[] = {1, 12, 1, 12};
 const int cornerY[] = {1, 1, 15, 15};
 const int pow5[] = {1, 5, 25, 125, 625, 3125, 15625};
-
-//global dist
-vector<vector<int> > dist;
-vector<vector<int> > CLOSED;
+const int HEIGHT = 17;
+const int WIDTH = 14;
 
 class Point {
 public:
@@ -42,9 +40,6 @@ public:
     return x < p.x;
   }
 };
-
-vector<int> firstDist,secondDist;
-vector<Point> firstPoint,secondPoint;
 
 class Skill {
 public:
@@ -79,9 +74,9 @@ public:
     return !containsSoul & !containsNinja & !containsDog;
   }
 };
-//global
-vector<vector<Cell> > FIELD;
 
+
+vector<Skill> skills;
 class Character : public Point {
 public:
   int id;
@@ -94,7 +89,7 @@ public:
     return Character(id, x, y);
   }
 };
-vector<Skill> skills;
+
 class State {
 public:
   int skillPoint;
@@ -190,9 +185,6 @@ public:
     //togasaki
     //init global
 
-    CLOSED.resize(st.H, vector<int>(st.W, 0));
-    dist.resize(st.H, vector<int>(st.W, 0));
-    FIELD.resize(st.H, vector<Cell>(st.W));
     
     
     st.field.clear();
@@ -213,11 +205,7 @@ public:
     st.minDistSoulById.clear();
 
 
-    //global
-    firstDist.resize(2, INF);
-    secondDist.resize(2, INF);
-    firstPoint.resize(2);
-    secondPoint.resize(2);
+
     
     for (int i = 0; i < numOfNinjas; i++) {
       Character ninja = Character::input();
@@ -280,6 +268,15 @@ public:
 	return true;
       }
     }
+    //very low
+    if (skills[7].cost <= 9){
+      if (killDog < right.killDog){
+	return true;
+      }
+      if (killDog > right.killDog){
+	return false;
+      }
+    }
     
     //閉じ込められてる
     if (ninjaConfined && !right.ninjaConfined){
@@ -312,18 +309,14 @@ public:
       return false;
     }
 
-    
-
-    //very low
-    if (skills[7].cost <= 9){
-      if (killDog < right.killDog){
-	return true;
-      }
-      if (killDog > right.killDog){
-	return false;
-      }
+    //忍者のハミング距離
+    if (hammingDistance <= 10 && right.hammingDistance > 10){
+      return true;
     }
-
+    if (hammingDistance > 10 && right.hammingDistance <= 10){
+      return false;
+    }
+    
 
     //どん詰まり
     if (minDistSoulById[0] + minDistSoulById[1] == 2 * INF && right.minDistSoulById[0] + right.minDistSoulById[1] != 2 * INF){
@@ -433,12 +426,19 @@ public:
 
 
 int remTime;
-//vector<Skill> skills;
 State myState;
 State rivalState;
 vector<int> commands;
-//vector<vector<string> > commands;
+//global
+vector<vector<int> > DIST;
+vector<vector<int> > CLOSED;
+vector<int> firstDist,secondDist;
+vector<Point> firstPoint,secondPoint;
 
+vector<vector<Cell> > FIELD;
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void initBoard(vector<vector<int> > &array, int val){
   for (int y = 0; y < array.size(); y++){
     for (int x = 0; x < array[0].size(); x++){
@@ -523,7 +523,7 @@ void useShadowCloneFarthestPoint(const State &nowState, const Order &order, vect
   }
 
   //initboard
-  initBoard(dist, INF);
+  initBoard(DIST, INF);
   //  vector<vector<int> > dist(nowState.H, vector<int>(nowState.W, INF));
   Order next = order;
   int res = 0;
@@ -539,7 +539,7 @@ void useShadowCloneFarthestPoint(const State &nowState, const Order &order, vect
     //copy
     copyField(FIELD, nowState.field);
     CLOSED[sy][sx] = true;
-    dist[sy][sx] = 0;	
+    DIST[sy][sx] = 0;	
     open.push(Search(sx, sy, 0));
     while (!open.empty()){
       Search sc = open.front();
@@ -551,25 +551,25 @@ void useShadowCloneFarthestPoint(const State &nowState, const Order &order, vect
 	if (FIELD[ny][nx].isWall())continue;
 	if (CLOSED[ny][nx])continue;
 	CLOSED[ny][nx] = true;
-	if (dist[ny][nx] > sc.dist + 1){
-	  dist[ny][nx] = sc.dist + 1;
+	if (DIST[ny][nx] > sc.dist + 1){
+	  DIST[ny][nx] = sc.dist + 1;
 	  open.push(Search(nx, ny, sc.dist + 1));
 	}
-	if (id == 1 && res <= dist[ny][nx]){
-	  if (res == dist[ny][nx]){
+	if (id == 1 && res <= DIST[ny][nx]){
+	  if (res == DIST[ny][nx]){
 	    int resX = targetPoint.x;
 	    int resY = targetPoint.y;
 	    if (resY == ny){
 	      if (nx < resX){
-		res = dist[ny][nx];
+		res = DIST[ny][nx];
 		targetPoint = Point(nx, ny);
 	      }
 	    }else if (ny < resY){
-	      res = dist[ny][nx];
+	      res = DIST[ny][nx];
 	      targetPoint = Point(nx, ny);
 	    }
 	  }else{
-	    res = dist[ny][nx];
+	    res = DIST[ny][nx];
 	    targetPoint = Point(nx, ny);
 	  }
 	}
@@ -803,7 +803,7 @@ void possibleOrder(vector<Order> &result, const State& nowState, int depth, bool
 	//	assert(false);
        	continue;
       }
-      if (depth == 0 || useSpecialSkill){
+      if (depth < 1 || useSpecialSkill){
 	if (!useSpecialSkill){
 	  //2
 	  //5
@@ -968,7 +968,7 @@ void calculateMinDistToSoul(State &nowState){
 
 void simulateNextDog(State &nowState, const Order &myOrder, const Attack& rivalAttack){
   //initBoard
-  initBoard(dist, INF);
+  initBoard(DIST, INF);
   //  vector<vector<int> > dist(nowState.H, vector<int>(nowState.W, INF));
   vector<Point> targetNinjas;
     if (myOrder.skillId == 5){
@@ -998,7 +998,7 @@ void simulateNextDog(State &nowState, const Order &myOrder, const Attack& rivalA
       open.push(Search(sx, sy, 0));
       while (!open.empty()) {
 	Search sc = open.front(); open.pop();
-	dist[sc.y][sc.x] = sc.dist;
+	DIST[sc.y][sc.x] = sc.dist;
 	for (int dir = 0; dir < 4; dir++) {
 	  int nx = sc.x + dx[dir];
 	  int ny = sc.y + dy[dir];
@@ -1006,7 +1006,7 @@ void simulateNextDog(State &nowState, const Order &myOrder, const Attack& rivalA
 	  if (CLOSED[ny][nx]) continue;
 
 	  CLOSED[ny][nx] = true;
-	  if (dist[ny][nx] > sc.dist + 1){
+	  if (DIST[ny][nx] > sc.dist + 1){
 	    open.push(Search(nx, ny, sc.dist + 1));
 	  }
 	}
@@ -1016,20 +1016,20 @@ void simulateNextDog(State &nowState, const Order &myOrder, const Attack& rivalA
     for (int i = 0; i < nowState.dogs.size(); i++){
       int px = nowState.dogs[i].x;
       int py = nowState.dogs[i].y;
-      orderDog.emplace_back(make_pair(dist[py][px], i));
+      orderDog.emplace_back(make_pair(DIST[py][px], i));
     }
     sort(orderDog.begin(), orderDog.end());
     for (int i = 0; i < orderDog.size(); i++){
       int id = orderDog[i].second;
       int px = nowState.dogs[id].x;
       int py = nowState.dogs[id].y;
-      int nowDist = dist[py][px];
+      int nowDist = DIST[py][px];
       //    if (nowDist == 0)continue;
       //      cerr << "nowDist = " << nowDist << endl;
       for (int k = 0; k < 4; k++){
 	int nx = px + dogDx[k];
 	int ny = py + dogDy[k];
-	int nextDist = dist[ny][nx];
+	int nextDist = DIST[ny][nx];
 	if (nowState.field[ny][nx].isEmpty() && !nowState.field[ny][nx].containsDog && (nowDist - nextDist) == 1){
 	  nowState.field[py][px].containsDog = false;
 	  nowState.field[ny][nx].containsDog = true;
@@ -1387,7 +1387,7 @@ void attackPhase(const State& myState, const State& rivalState, vector<State> &r
  * -- 「超高速」のみを使用します。
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
-void think(int depthLimit, int beamWidth=250) {
+void think(int depthLimit, int beamWidth=300) {
 
   //  int hammingDistance = calculateHammingDistance(myState);
   // if (hammingDistance <= 4){
@@ -1618,6 +1618,19 @@ bool input() {
   return true;
 }
 
+void initGlobal(){
+  CLOSED.resize(HEIGHT, vector<int>(WIDTH, 0));
+  DIST.resize(HEIGHT, vector<int>(WIDTH, 0));
+  FIELD.resize(HEIGHT, vector<Cell>(WIDTH));
+    //global
+  firstDist.resize(2, INF);
+  secondDist.resize(2, INF);
+  firstPoint.resize(2);
+  secondPoint.resize(2);
+  return ;
+}
+
+
 int main() {
   std::ios::sync_with_stdio(false);
   std::cin.tie(0);
@@ -1625,10 +1638,12 @@ int main() {
   cout << "TogaTogAI" << endl;
   cout.flush();
   commands = createCommands();
-  int turn = 1;
+  initGlobal();
+  Int turn = 1;
   while (input()) {
     //cerr << "turn = " << turn++ << endl;
-    think(5);
+
+    think(6);
     cout.flush();
 
   }
