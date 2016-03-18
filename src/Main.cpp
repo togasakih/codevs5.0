@@ -432,7 +432,42 @@ public:
   }
 };
 
+class myQueue{
+public:
+  int head;
+  int tail;
+  Search queue[300];
+  myQueue(){
+    head = 0;
+    tail = 0;
+  }
+  bool empty(){
+    if (head == tail){
+      return true;
+    }else{
+      return false;
+    }
+  }
+  int size(){
+    return (tail - head);
+  }
+  void push(const Search &p){
+    queue[tail++] = p;
+  }
+  Search& front(){
+    return queue[head];
+  }
+  void pop(){
+    head++;
+  }
+  void init(){
+    head = 0;
+    tail = 0;
+  }
+};
 
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int remTime;
 State myState;
 State rivalState;
@@ -444,7 +479,7 @@ vector<int> firstDist,secondDist;
 vector<Point> firstPoint,secondPoint;
 
 vector<vector<Cell> > FIELD;
-
+myQueue open;
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void initBoard(vector<vector<int> > &array, int val){
@@ -539,7 +574,8 @@ void useShadowCloneFarthestPoint(const State &nowState, const Order &order, vect
   for (int id = 0; id < 2; id++){
     int sx = nowState.ninjas[id].x;
     int sy = nowState.ninjas[id].y;
-    queue<Search> open;
+    //    queue<Search> open;
+    open.init();
     //initboard
     initBoard(CLOSED, false);
     //    vector< vector<bool> > CLOSED(nowState.H, vector<bool>(nowState.W, false));
@@ -890,7 +926,8 @@ void calculateMinDistToSoul(State &nowState){
       
     int sx = nowState.ninjas[id].x;
     int sy = nowState.ninjas[id].y;
-    queue<Search> open;
+    //    queue<Search> open;
+    open.init();
     //initBoard
     initBoard(CLOSED, false);
     //vector< vector<Cell> > field = nowState.field;
@@ -998,7 +1035,8 @@ void simulateNextDog(State &nowState, const Order &myOrder, const Attack& rivalA
     for (int id = 0; id < targetNinjas.size(); id++){
       int sx = targetNinjas[id].x;
       int sy = targetNinjas[id].y;
-      queue<Search> open;
+      //      queue<Search> open;
+      open.init();
       //initBoard
       initBoard(CLOSED, false);
       //      vector< vector<bool> > CLOSED(nowState.H, vector<bool>(nowState.W, false));
