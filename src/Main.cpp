@@ -132,6 +132,7 @@ public:
   int kill;
   bool attackMode;
   int cornerClosed;
+  int surroundNumOfDog;
   State() {
     skillPoint = H = W = -1;
     field.clear();
@@ -174,7 +175,7 @@ public:
     kill = -2;
     attackMode = false;
     cornerClosed = INF;
-
+    surroundNumOfDog = 0;
   }
 
   static State input(int numOfSkills) {
@@ -312,7 +313,7 @@ public:
       return false;
     }
 
-    //忍者のハミング距離
+    //忍者のマンハッタン距離
     if (manhattanDistance <= 10 && right.manhattanDistance > 10){
       return true;
     }
@@ -355,7 +356,7 @@ public:
       if (cornerClosed > right.cornerClosed){
 	return false;
       }
-      //忍者のハミング距離
+      //忍者のマンハッタン距離
       if (manhattanDistance < right.manhattanDistance){
 	return true;
       }
@@ -718,7 +719,6 @@ void attackShadowClone(const State& myState, const State& rivalState, vector<Att
   for (int id = 0; id < 2; id++){
     int px = myState.ninjas[id].x;
     int py = myState.ninjas[id].y;
-    //attack.setSkill(6, Point(px, py));
     for (int y = -2; y <= 2; y++){
      for (int x = -2; x <= 2; x++){
 	int nx = px + x;
@@ -843,8 +843,6 @@ void possibleOrder(vector<Order> &result, const State& nowState, int depth, bool
 	result.emplace_back(nowOrder);
       }
       if (depth == 0 && nowState.attackMode == true){
-	//	cerr << nowState.skillId << " " << nowState.targetPoint.y << " " << nowState.targetPoint.x << endl;
-	//	assert(false);
        	continue;
       }
       if (depth < 1 || useSpecialSkill){
@@ -855,7 +853,7 @@ void possibleOrder(vector<Order> &result, const State& nowState, int depth, bool
 	  useShadowCloneCornerPoint(nowState, nowOrder, result);
 	  useLightning(nowState, nowOrder, result);
 	  useShadowClone(nowState, nowOrder, result);
-	  if (skills[7].cost <= 20){
+	  if (skills[7].cost <= 20 || nowState.skillPoint >= skills[7].cost * 1.5){
 	    for (int id = 0; id < 2; id++){
 	      useWhirlslash(nowState, id, nowOrder,result);
 	    }
@@ -864,7 +862,6 @@ void possibleOrder(vector<Order> &result, const State& nowState, int depth, bool
 	//7
 	if (useSpecialSkill){
 	  //2
-
 	  for (int id = 0; id < 2; id++){
 	    useWhirlslash(nowState, id, nowOrder,result,useSpecialSkill);
 	  }
@@ -1240,6 +1237,28 @@ int calculateManhattanNinjasDistance(State& state){
   state.manhattanDistance = abs(px - qx) + abs(py - qy);
   return state.manhattanDistance;
 }
+void calculateSurroundNumOfDog(State &state){
+  
+  for (int id = 0; id < 2; id++){
+    int px = state.ninjas[id].x;
+    int py = state.ninjas[id].y;
+    int dog = 0;
+    for (int y = -1; y <= 1; y++){
+      for (int x = -1; x <= 1; x++){
+	int nx = px + x;
+	int ny = py + y;
+	if (state.field[ny][nx].containsDog){
+	  dog++;
+	}
+      }
+    }
+    state.surroundNumOfDog = max(state.surroundNumOfDog, dog);
+  }
+    
+  return ;
+}
+
+
 void showState(const vector<State> &currentState){
   cerr << "-----------------------" << endl;
   for (int i = 0; i < currentState.size(); i++){
@@ -1548,16 +1567,13 @@ void think(int depthLimit, int beamWidth=300) {
 	    nextState.skillNumOfUse += 1;
 	  }
 	  nextState.skillPoint -= skillCost;
-	  //additional score
+	  
 	  calculateMinDistToSoul(nextState);
 	  calculateManhattanPreDistance(nextState);
 	  checkConfined(nextState);
 	  calculateNearCorner(nextState);
-	  
+	  calculateSurroundNumOfDog(nextState);
 	  int manhattanDistance = calculateManhattanDistance(nextState);
-	  // if (manhattanDistance <= 4){
-	  //   nextState.replNinjaMode = true;
-	  // }
 	  currentState[depth + 1].emplace_back(nextState);
 	}
       }
