@@ -262,11 +262,11 @@ public:
     	return false;
       }
       //kill
-      if (kill > right.kill){
-	return false;
-      }
       if (kill < right.kill){
 	return true;
+      }
+      if (kill > right.kill){
+	return false;
       }
     }
     
@@ -1441,7 +1441,108 @@ void attackPhase(const State& myState, const State& rivalState, vector<State> &r
 
   return ;
 }
+//比較関数
+////////////////////////////////////////
+bool PriorityWhirlslash(const State& left, const State& right){
+    
+  for (int i = 0; i < left.survive.size(); i++){
+    if (left.survive[i] < right.survive[i]){
+      return true;
+    }
+    if (left.survive[i] > right.survive[i]){
+      return false;
+    }
+    //kill
+    if (left.kill < right.kill){
+      return true;
+    }
+    if (left.kill > right.kill){
+      return false;
+    }
+  }
+    
+  //very low
+  if (left.killDog < right.killDog){
+    return true;
+  }
+  if (left.killDog > right.killDog){
+    return false;
+  }
 
+  if (left.getSoul < right.getSoul){
+    return true;
+  }
+  if (left.getSoul > right.getSoul){
+    return false;
+  }
+
+  //忍者のマンハッタン距離
+  if (left.manhattanDistance <= 10 && right.manhattanDistance > 10){
+    return true;
+  }
+  if (left.manhattanDistance > 10 && right.manhattanDistance <= 10){
+    return false;
+  }
+    
+
+  //どん詰まり
+  if (left.minDistSoulById[0] + left.minDistSoulById[1] == 2 * INF && right.minDistSoulById[0] + right.minDistSoulById[1] != 2 * INF){
+    return true;
+  }
+  if (left.minDistSoulById[0] + left.minDistSoulById[1] != 2 * INF && right.minDistSoulById[0] + right.minDistSoulById[1] == 2 * INF){
+    return false;
+  }
+
+  if (left.skillPoint < right.skillPoint){
+    return true;
+  }
+
+  if (left.skillPoint > right.skillPoint){
+    return false;
+  }
+  if (left.minDistSoulById[0] + left.minDistSoulById[1] ==  right.minDistSoulById[0] + right.minDistSoulById[1]){
+    if (left.minSoulManhattanDistance[0] + left.minSoulManhattanDistance[1] > right.minSoulManhattanDistance[0] + right.minSoulManhattanDistance[1]){
+      return true;
+    }
+    if (left.minSoulManhattanDistance[0] + left.minSoulManhattanDistance[1]< right.minSoulManhattanDistance[0] + right.minSoulManhattanDistance[1]){
+      return false;
+    }
+    //cornerに近いかどうか
+    if (left.cornerClosed < right.cornerClosed){
+      return true;
+    }
+    if (left.cornerClosed > right.cornerClosed){
+      return false;
+    }
+    //忍者のマンハッタン距離
+    if (left.manhattanDistance < right.manhattanDistance){
+      return true;
+    }
+    if (left.manhattanDistance > right.manhattanDistance){
+      return false;
+    }
+    //前との距離
+    if (left.manhattanPreDistance < right.manhattanPreDistance){
+      return true;
+    }
+    if (left.manhattanPreDistance > right.manhattanPreDistance){
+      return false;
+    }
+
+  }
+  return left.minDistSoulById[0] + left.minDistSoulById[1] > right.minDistSoulById[0] + right.minDistSoulById[1];
+}
+
+////////////////////////////////////////
+void sortState(vector<State> &states){
+  
+  if (skills[7].cost <= 10 || myState.skillPoint >= skills[7].cost * 1.5){//
+    sort(states.rbegin(), states.rend(), PriorityWhirlslash);    
+    return ;
+  }
+  
+  sort(states.rbegin(), states.rend());//ordinary
+}
 
 /*
  * このAIについて
@@ -1466,7 +1567,7 @@ void think(int depthLimit, int beamWidth=300) {
   int cntChallenge = 0;
   for (int depth = 0; depth < depthLimit; depth++){
     if (currentState[depth].size() > beamWidth){
-      sort(currentState[depth].rbegin(), currentState[depth].rend());
+      sortState(currentState[depth]);
       currentState[depth].erase(currentState[depth].begin() + beamWidth, currentState[depth].end());
     }
     cntChallenge++;
