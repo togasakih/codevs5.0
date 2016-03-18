@@ -115,16 +115,16 @@ public:
   Point targetRivalPoint;
   
   vector<int> survive;
-  int hammingDistance;
+  int manhattanDistance;
 
   int preNinjaX0;
   int preNinjaY0;
 
   int preNinjaX1;
   int preNinjaY1;
-  int hammingPreDistance;
+  int manhattanPreDistance;
   int killDog;
-  vector<int> minSoulHammingDistance;
+  vector<int> minSoulManhattanDistance;
   bool ninjaConfined;
 
 
@@ -156,18 +156,18 @@ public:
     targetRivalPoint = Point(-1,-1);
     
     survive.clear();
-    hammingDistance = 0;
+    manhattanDistance = 0;
 
 
     preNinjaX0 = -1;
     preNinjaY0 = -1;
     preNinjaX1 = -1;
     preNinjaY1 = -1;
-    hammingPreDistance = 0;
+    manhattanPreDistance = 0;
     skillNumOfUse = 0;
     //
     killDog = 0;
-    minSoulHammingDistance.clear();
+    minSoulManhattanDistance.clear();
     ninjaConfined = false;
 
     //attack
@@ -218,7 +218,7 @@ public:
 	st.preNinjaY1 = ninja.y;
       }
       st.minDistSoulById.emplace_back(INF);
-      st.minSoulHammingDistance.emplace_back(INF);
+      st.minSoulManhattanDistance.emplace_back(INF);
       st.field[ninja.y][ninja.x].containsNinja = true;
     }
 
@@ -313,10 +313,10 @@ public:
     }
 
     //忍者のハミング距離
-    if (hammingDistance <= 10 && right.hammingDistance > 10){
+    if (manhattanDistance <= 10 && right.manhattanDistance > 10){
       return true;
     }
-    if (hammingDistance > 10 && right.hammingDistance <= 10){
+    if (manhattanDistance > 10 && right.manhattanDistance <= 10){
       return false;
     }
     
@@ -342,10 +342,10 @@ public:
     
 
     if (minDistSoulById[0] + minDistSoulById[1] ==  right.minDistSoulById[0] + right.minDistSoulById[1]){
-      if (minSoulHammingDistance[0] + minSoulHammingDistance[1] > right.minSoulHammingDistance[0] + right.minSoulHammingDistance[1]){
+      if (minSoulManhattanDistance[0] + minSoulManhattanDistance[1] > right.minSoulManhattanDistance[0] + right.minSoulManhattanDistance[1]){
 	return true;
       }
-      if (minSoulHammingDistance[0] + minSoulHammingDistance[1]< right.minSoulHammingDistance[0] + right.minSoulHammingDistance[1]){
+      if (minSoulManhattanDistance[0] + minSoulManhattanDistance[1]< right.minSoulManhattanDistance[0] + right.minSoulManhattanDistance[1]){
 	return false;
       }
       //cornerに近いかどうか
@@ -356,17 +356,17 @@ public:
 	return false;
       }
       //忍者のハミング距離
-      if (hammingDistance < right.hammingDistance){
+      if (manhattanDistance < right.manhattanDistance){
 	return true;
       }
-      if (hammingDistance > right.hammingDistance){
+      if (manhattanDistance > right.manhattanDistance){
 	return false;
       }
       //前との距離
-      if (hammingPreDistance < right.hammingPreDistance){
+      if (manhattanPreDistance < right.manhattanPreDistance){
 	return true;
       }
-      if (hammingPreDistance > right.hammingPreDistance){
+      if (manhattanPreDistance > right.manhattanPreDistance){
 	return false;
       }
 
@@ -999,8 +999,8 @@ void calculateMinDistToSoul(State &nowState){
       if (id == 1 && taboo == i)continue;
       int sx = nowState.souls[i].x;
       int sy = nowState.souls[i].y;
-      if (nowState.minSoulHammingDistance[id] > abs(px - sx) + abs(py - sy)) {
-	nowState.minSoulHammingDistance[id] = abs(px - sx) + abs(py - sy);
+      if (nowState.minSoulManhattanDistance[id] > abs(px - sx) + abs(py - sy)) {
+	nowState.minSoulManhattanDistance[id] = abs(px - sx) + abs(py - sy);
 	if (id == 0){
 	  taboo = id;
 	}
@@ -1203,7 +1203,7 @@ void simulateDefence(State& nowState, int skillUseId,int skillId, Point targetPo
   
 }
 
-int calculateHammingPreDistance(State& state){
+int calculateManhattanPreDistance(State& state){
   
   int px = state.ninjas[0].x;
   int py = state.ninjas[0].y;
@@ -1215,30 +1215,30 @@ int calculateHammingPreDistance(State& state){
   int pqy = state.preNinjaY1;
   int qx = state.ninjas[1].x;
   int qy = state.ninjas[1].y;
-  state.hammingPreDistance = abs(px - ppx) + abs(py - ppy) + abs(qx - pqx) + abs(qy - pqy);
-  return state.hammingPreDistance;
+  state.manhattanPreDistance = abs(px - ppx) + abs(py - ppy) + abs(qx - pqx) + abs(qy - pqy);
+  return state.manhattanPreDistance;
 }
 
-int calculateHammingDistance(State& state){
+int calculateManhattanDistance(State& state){
   
   int px = state.ninjas[0].x;
   int py = state.ninjas[0].y;
 
   int qx = state.ninjas[1].x;
   int qy = state.ninjas[1].y;
-  state.hammingDistance = abs(px - qx) + abs(py - qy);
-  return state.hammingDistance;
+  state.manhattanDistance = abs(px - qx) + abs(py - qy);
+  return state.manhattanDistance;
 }
 
-int calculateHammingNinjasDistance(State& state){
+int calculateManhattanNinjasDistance(State& state){
   int px = state.ninjas[0].x;
   int py = state.ninjas[0].y;
   
   int qx = state.ninjas[1].x;
   int qy = state.ninjas[1].y;
 
-  state.hammingDistance = abs(px - qx) + abs(py - qy);
-  return state.hammingDistance;
+  state.manhattanDistance = abs(px - qx) + abs(py - qy);
+  return state.manhattanDistance;
 }
 void showState(const vector<State> &currentState){
   cerr << "-----------------------" << endl;
@@ -1325,7 +1325,7 @@ void checkConfined(State &nowState){
   }
   return ;
 }
-void checkNearCorner(State &nowState){
+void calculateNearCorner(State &nowState){
   for (int id = 0; id < 2; id++){
     int px = nowState.ninjas[id].x;
     int py = nowState.ninjas[id].y;
@@ -1435,8 +1435,8 @@ void attackPhase(const State& myState, const State& rivalState, vector<State> &r
  */
 void think(int depthLimit, int beamWidth=300) {
 
-  //  int hammingDistance = calculateHammingDistance(myState);
-  // if (hammingDistance <= 4){
+  //  int manhattanDistance = calculateManhattanDistance(myState);
+  // if (manhattanDistance <= 4){
   //   myState.replNinjaMode = true;
   // }
   
@@ -1550,12 +1550,12 @@ void think(int depthLimit, int beamWidth=300) {
 	  nextState.skillPoint -= skillCost;
 	  //additional score
 	  calculateMinDistToSoul(nextState);
-	  calculateHammingPreDistance(nextState);
+	  calculateManhattanPreDistance(nextState);
 	  checkConfined(nextState);
-	  checkNearCorner(nextState);
+	  calculateNearCorner(nextState);
 	  
-	  int hammingDistance = calculateHammingDistance(nextState);
-	  // if (hammingDistance <= 4){
+	  int manhattanDistance = calculateManhattanDistance(nextState);
+	  // if (manhattanDistance <= 4){
 	  //   nextState.replNinjaMode = true;
 	  // }
 	  currentState[depth + 1].emplace_back(nextState);
