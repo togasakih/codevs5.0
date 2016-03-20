@@ -289,21 +289,10 @@ public:
 	return false;
       }
     }
-
-
     
     //二個以上は嬉しいよ
     if (getSoul - right.getSoul >= 2){
       return false;
-    }
-    //very low
-    if (skills[7].cost <= 9){
-      if (killDog < right.killDog){
-	return true;
-      }
-      if (killDog > right.killDog){
-	return false;
-      }
     }
 
     if (getSoul < right.getSoul){
@@ -370,7 +359,13 @@ public:
       if (manhattanPreDistance > right.manhattanPreDistance){
 	return false;
       }
-
+      //
+      if (commandId < right.commandId){
+	return true;
+      }
+      if (commandId > right.commandId){
+	return false;
+      }
     }
     return minDistSoulById[0] + minDistSoulById[1] > right.minDistSoulById[0] + right.minDistSoulById[1];
   }
@@ -1468,7 +1463,16 @@ bool PriorityWhirlslash(const State& left, const State& right){
   if (left.killDog > right.killDog){
     return false;
   }
-
+  
+  if (left.skillPoint >= skills[7].cost && right.skillPoint >= skills[7].cost){
+    if (left.surroundNumOfDog < right.surroundNumOfDog){
+      return true;
+    }
+    if (left.surroundNumOfDog > right.surroundNumOfDog){
+      return false;
+    }
+  }
+  
   if (left.getSoul < right.getSoul){
     return true;
   }
@@ -1528,7 +1532,12 @@ bool PriorityWhirlslash(const State& left, const State& right){
     if (left.manhattanPreDistance > right.manhattanPreDistance){
       return false;
     }
-
+    if (left.commandId < right.commandId){
+      return true;
+    }
+    if (left.commandId > right.commandId){
+      return false;
+    }
   }
   return left.minDistSoulById[0] + left.minDistSoulById[1] > right.minDistSoulById[0] + right.minDistSoulById[1];
 }
@@ -1542,6 +1551,18 @@ void sortState(vector<State> &states){
   }
   
   sort(states.rbegin(), states.rend());//ordinary
+  return ;
+}
+
+void nthState(vector<State> &states, int beamWidth){
+  
+  if ((skills[7].cost <= 10 || myState.skillPoint >= skills[7].cost * 1.5)){//
+    nth_element(states.rbegin(), states.rbegin() + beamWidth, states.rend(), PriorityWhirlslash);    
+    return ;
+  }
+  nth_element(states.rbegin(), states.rbegin() + beamWidth, states.rend());
+  //  cerr << "unko" << endl;
+  return ;
 }
 
 /*
@@ -1553,25 +1574,22 @@ void sortState(vector<State> &states){
  * -- 「超高速」のみを使用します。
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
-void think(int depthLimit, int beamWidth=300) {
-
-  //  int manhattanDistance = calculateManhattanDistance(myState);
-  // if (manhattanDistance <= 4){
-  //   myState.replNinjaMode = true;
-  // }
+void think(int depthLimit, int beamWidth=1000) {
   
   vector<State> currentState[depthLimit + 1];
   attackPhase(myState, rivalState, currentState[0]);
- // currentState[0].emplace_back(myState);
+
   //depth 0
   int cntChallenge = 0;
   for (int depth = 0; depth < depthLimit; depth++){
+
     if (currentState[depth].size() > beamWidth){
       sortState(currentState[depth]);
-      currentState[depth].erase(currentState[depth].begin() + beamWidth, currentState[depth].end());
+      //nthState(currentState[depth], beamWidth);
+      currentState[depth].resize(beamWidth);
     }
     cntChallenge++;
-
+    bool flagSurvive = false;
     for (int k = 0; k < currentState[depth].size(); k++){
       vector<Order> myOrders;
       possibleOrder(myOrders,currentState[depth][k], depth, cntChallenge >= 2);
@@ -1580,7 +1598,7 @@ void think(int depthLimit, int beamWidth=300) {
       if (depth == 0){
 	possibleAttack(rivalAttacks, currentState[depth][k], rivalState);
       }
-      //      cerr <<currentState[depth].size() << " " << myOrders.size() << " " << rivalAttacks.size() << endl;      
+      //cerr <<currentState[depth].size() << " " << myOrders.size() << " " << rivalAttacks.size() << endl;      
       for (int i = 0; i < myOrders.size(); i++){
 	int survive = 1;
 	int comId = myOrders[i].comId;
@@ -1602,10 +1620,7 @@ void think(int depthLimit, int beamWidth=300) {
 	  simulateAttack(nextState, rivalAttacks[j]);
 	  simulateDefence(nextState, skillUseId, skillId, targetPoint);
 	  int tmp = genNextState(nextState, comId, skillId == 5);
-	  // if (comId == 12){
-	  //   if (skillId == )
 
-	  // }
 	  if (tmp == -1){//killed
 	    if (rivalAttacks[j].skillId != -1){//use skill
 	      survive = -1;
@@ -1639,7 +1654,7 @@ void think(int depthLimit, int beamWidth=300) {
 	  if (survive == -2)break;
 	}
 	if (survive != -2){
-
+	  if (survive == 1)flagSurvive = true;
 	  int comBits = commands[comId];
 	  
 	  int upperBit = comBits / pow5[2];
@@ -1682,19 +1697,26 @@ void think(int depthLimit, int beamWidth=300) {
     
     //    currentState[depth].clear();
     if (cntChallenge == 1){
-      sort(currentState[depth + 1].rbegin(), currentState[depth + 1].rend());
-      if (currentState[depth + 1].empty() || currentState[depth + 1][0].survive[depth] != 1){//use special skill
+      //      nthState(currentState[depth + 1], 1);
+      //      sort(currentState[depth + 1].rbegin(), currentState[depth + 1].rend());
+      //      cerr << maxState.survive.size() << " " << maxState.survive[maxState.survive.size() - 1] << endl;
+      //      cerr << "depth = " << depth << endl;
+      if (currentState[depth + 1].empty() || !flagSurvive){//use special skill
+	//      if (currentState[depth + 1].empty() || currentState[depth + 1][0].survive[depth] != 1){//use special skill
+
 	//	cerr << "PROBABLY DEATH!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
 	//	currentState[depth + 1].clear();
 	depth -= 1;
 	continue;
       }
+      //cerr << "unko" << endl;
     }
     cntChallenge = 0;
   }
 
   for (int depth = depthLimit; depth >= 1; depth--){
-    sort(currentState[depth].rbegin(), currentState[depth].rend());
+    sortState(currentState[depth]);
+    //    sort(currentState[depth].rbegin(), currentState[depth].rend());
     cerr << currentState[depth].size() << endl;
     for (int i = 0; i < currentState[depth].size(); i++){
       int comId = currentState[depth][i].commandId;
@@ -1804,9 +1826,7 @@ int main() {
   initGlobal();
   int turn = 1;
   while (input()) {
-    //cerr << "turn = " << turn++ << endl;
-
-    think(6);
+    think(3);
     cout.flush();
 
   }
