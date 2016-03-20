@@ -1464,14 +1464,6 @@ bool PriorityWhirlslash(const State& left, const State& right){
     return false;
   }
   
-  if (left.skillPoint >= skills[7].cost && right.skillPoint >= skills[7].cost){
-    if (left.surroundNumOfDog < right.surroundNumOfDog){
-      return true;
-    }
-    if (left.surroundNumOfDog > right.surroundNumOfDog){
-      return false;
-    }
-  }
   
   if (left.getSoul < right.getSoul){
     return true;
@@ -1480,6 +1472,16 @@ bool PriorityWhirlslash(const State& left, const State& right){
     return false;
   }
 
+  if (left.skillPoint >= skills[7].cost && right.skillPoint >= skills[7].cost){
+    if (left.surroundNumOfDog < right.surroundNumOfDog){
+      return true;
+    }
+    if (left.surroundNumOfDog > right.surroundNumOfDog){
+      return false;
+    }
+  }
+
+  
   //忍者のマンハッタン距離
   if (left.manhattanDistance <= 10 && right.manhattanDistance > 10){
     return true;
