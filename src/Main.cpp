@@ -1559,11 +1559,10 @@ void sortState(vector<State> &states){
 void nthState(vector<State> &states, int beamWidth){
   
   if ((skills[7].cost <= 10 || myState.skillPoint >= skills[7].cost * 1.5)){//
-    nth_element(states.rbegin(), states.rbegin() + beamWidth, states.rend(), PriorityWhirlslash);    
+    nth_element(states.rbegin(), states.rend() - (beamWidth + 1), states.rend(), PriorityWhirlslash);    
     return ;
   }
-  nth_element(states.rbegin(), states.rbegin() + beamWidth, states.rend());
-  //  cerr << "unko" << endl;
+  nth_element(states.rbegin(), states.rend() - (beamWidth + 1), states.rend());
   return ;
 }
 
@@ -1576,7 +1575,7 @@ void nthState(vector<State> &states, int beamWidth){
  * -- 「超高速」のみを使用します。
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
-void think(int depthLimit, int beamWidth=700) {
+void think(int depthLimit, int beamWidth=1000) {
 
   if (remTime <= 10000){//panic mode
     depthLimit = 2;
@@ -1590,8 +1589,8 @@ void think(int depthLimit, int beamWidth=700) {
   for (int depth = 0; depth < depthLimit; depth++){
 
     if (currentState[depth].size() > beamWidth){
-      sortState(currentState[depth]);
-      //nthState(currentState[depth], beamWidth);
+      //sortState(currentState[depth]);
+      nthState(currentState[depth], beamWidth);
       currentState[depth].resize(beamWidth);
     }
     cntChallenge++;
@@ -1832,7 +1831,7 @@ int main() {
   initGlobal();
   int turn = 1;
   while (input()) {
-    think(3);
+    think(4);
     cout.flush();
 
   }
