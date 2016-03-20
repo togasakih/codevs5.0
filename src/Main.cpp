@@ -1579,7 +1579,8 @@ void nthState(vector<State> &states, int beamWidth){
 void think(int depthLimit, int beamWidth=1000) {
 
   if (remTime <= 10000){//panic mode
-    depthLimit = 1;
+    depthLimit = 2;
+    beamWidth = 100;
   }
   vector<State> currentState[depthLimit + 1];
   attackPhase(myState, rivalState, currentState[0]);
