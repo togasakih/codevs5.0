@@ -1577,7 +1577,7 @@ void nthState(vector<State> &states, int beamWidth){
  */
 void think(int depthLimit, int beamWidth=1000) {
 
-  if (remTime <= 10000){//panic mode
+  if (remTime <= 30000){//panic mode
     depthLimit = 2;
     beamWidth = 100;
   }
@@ -1831,7 +1831,7 @@ int main() {
   initGlobal();
   int turn = 1;
   while (input()) {
-    think(4);
+    think(3);
     cout.flush();
 
   }
