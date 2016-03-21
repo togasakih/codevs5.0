@@ -503,7 +503,7 @@ void useShadowCloneCornerPoint(const State &nowState, const Order &order, vector
 	if (nowState.field[y][x].isWall() || nowState.field[y][x].isObject())continue;
 	next.setSkill(5);
 	next.setTargetPoint(x, y);
-	result.push_back(next);
+	result.emplace_back(next);
 	goto NextSegment1;
       }
     }
@@ -514,7 +514,7 @@ void useShadowCloneCornerPoint(const State &nowState, const Order &order, vector
 	if (nowState.field[y][x].isWall() || nowState.field[y][x].isObject())continue;
 	next.setSkill(5);
 	next.setTargetPoint(x, y);
-	result.push_back(next);
+	result.emplace_back(next);
 	goto NextSegment2;
       }
     }
@@ -526,7 +526,7 @@ void useShadowCloneCornerPoint(const State &nowState, const Order &order, vector
 	if (nowState.field[y][x].isWall() || nowState.field[y][x].isObject())continue;
 	next.setSkill(5);
 	next.setTargetPoint(x, y);
-	result.push_back(next);
+	result.emplace_back(next);
 	goto NextSegment3;
       }
     }
@@ -537,7 +537,7 @@ void useShadowCloneCornerPoint(const State &nowState, const Order &order, vector
 	if (nowState.field[y][x].isWall() || nowState.field[y][x].isObject())continue;
 	next.setSkill(5);
 	next.setTargetPoint(x, y);
-	result.push_back(next);
+	result.emplace_back(next);
 	goto NextSegment4;
       }
     }
@@ -885,13 +885,13 @@ vector<int> createCommands(){
     for (int j = 0; j < 5; j++){
       if (i == 4)break;
       int bit = i * pow5[0] + j * pow5[1];
-      tmp.push_back(bit);
+      tmp.emplace_back(bit);
     }
   }
 
   for (int i = 0; i < tmp.size(); i++){
     for (int j = 0; j < tmp.size(); j++){
-      result.push_back(tmp[i] * pow5[2] + tmp[j] * pow5[0]);
+      result.emplace_back(tmp[i] * pow5[2] + tmp[j] * pow5[0]);
     }
   }
 
