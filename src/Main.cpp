@@ -1478,7 +1478,7 @@ bool PriorityWhirlslash(const State& left, const State& right){
 ////////////////////////////////////////
 void sortState(vector<State> &states){
   
-  if (myState.skillPoint >= skills[7].cost * 1.5)){//
+  if (myState.skillPoint >= skills[7].cost * 1.5){//
     sort(states.rbegin(), states.rend(), PriorityWhirlslash);    
     return ;
   }
