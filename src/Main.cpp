@@ -982,6 +982,7 @@ void calculateMinDistToSoul(State &nowState){
       if (id == 1 && taboo == i)continue;
       int sx = nowState.souls[i].x;
       int sy = nowState.souls[i].y;
+      if (!nowState.field[sy][sx].containsSoul)continue;
       if (nowState.minSoulManhattanDistance[id] > abs(px - sx) + abs(py - sy)) {
 	nowState.minSoulManhattanDistance[id] = abs(px - sx) + abs(py - sy);
 	if (id == 0){
@@ -1045,6 +1046,7 @@ void simulateNextDog(State &nowState, const Order &myOrder, const Attack& rivalA
     for (int i = 0; i < nowState.dogs.size(); i++){
       int px = nowState.dogs[i].x;
       int py = nowState.dogs[i].y;
+      if (!nowState.field[py][px].containsDog)continue;
       orderDog.emplace_back(make_pair(DIST[py][px], i));
     }
     sort(orderDog.begin(), orderDog.end());
@@ -1109,7 +1111,7 @@ int genNextState(State &nextState, int comId, bool shadow=false){
 	nextState.skillPoint += 2;
 	nextState.getSoul += 1;
 	nextState.field[ny][nx].containsSoul = false;
-	nextState.souls.erase( find(nextState.souls.begin(), nextState.souls.end(), Point(nx, ny)) );
+	//	nextState.souls.erase( find(nextState.souls.begin(), nextState.souls.end(), Point(nx, ny)) );
       }
       //next
       nextState.field[py][px].containsNinja = false;
@@ -1176,7 +1178,7 @@ void simulateDefence(State& nowState, int skillUseId,int skillId, Point targetPo
 	if (nowState.field[ny][nx].containsDog){
 	  nowState.field[ny][nx].containsDog = false;
 	  nowState.killDog++;
-	  nowState.dogs.erase( find(nowState.dogs.begin(), nowState.dogs.end(), Point(nx, ny)) );
+	  //	  nowState.dogs.erase( find(nowState.dogs.begin(), nowState.dogs.end(), Point(nx, ny)) );
 	}
       }
     }
