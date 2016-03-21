@@ -103,7 +103,6 @@ public:
   //  bool fail;
   int commandId;
   vector<int> minDistSoulById;
-  int rivalSkillPoint;
   
   int skillUseId;
   int skillId;
@@ -145,7 +144,6 @@ public:
     //    fail = false;
     commandId = -1;
     minDistSoulById.clear();
-    rivalSkillPoint = 0;
     
     skillUseId = -1;
     skillId = -1;
@@ -357,13 +355,6 @@ public:
 	return true;
       }
       if (manhattanPreDistance > right.manhattanPreDistance){
-	return false;
-      }
-      //
-      if (commandId < right.commandId){
-	return true;
-      }
-      if (commandId > right.commandId){
 	return false;
       }
     }
@@ -1534,12 +1525,6 @@ bool PriorityWhirlslash(const State& left, const State& right){
     if (left.manhattanPreDistance > right.manhattanPreDistance){
       return false;
     }
-    if (left.commandId < right.commandId){
-      return true;
-    }
-    if (left.commandId > right.commandId){
-      return false;
-    }
   }
   return left.minDistSoulById[0] + left.minDistSoulById[1] > right.minDistSoulById[0] + right.minDistSoulById[1];
 }
@@ -1804,7 +1789,7 @@ bool input() {
 
   myState = State::input(skills.size());
   rivalState = State::input(skills.size());
-  myState.rivalSkillPoint = rivalState.skillPoint;
+  //  myState.rivalSkillPoint = rivalState.skillPoint;
   return true;
 }
 
