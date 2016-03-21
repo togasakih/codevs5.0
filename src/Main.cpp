@@ -1588,6 +1588,7 @@ void think(int depthLimit, int beamWidth=1000) {
     depthLimit = 2;
     beamWidth = 100;
   }
+  myState.survive.resize(depthLimit);
   vector<State> currentState[depthLimit + 1];
   attackPhase(myState, rivalState, currentState[0]);
 
@@ -1610,7 +1611,7 @@ void think(int depthLimit, int beamWidth=1000) {
       if (depth == 0){
 	possibleAttack(rivalAttacks, currentState[depth][k], rivalState);
       }
-      //cerr <<currentState[depth].size() << " " << myOrders.size() << " " << rivalAttacks.size() << endl;      
+
       for (int i = 0; i < myOrders.size(); i++){
 	int survive = 1;
 	int comId = myOrders[i].comId;
@@ -1682,7 +1683,7 @@ void think(int depthLimit, int beamWidth=1000) {
 	  genNextState(nextState, comId, skillId == 5);//survive
 	  simulateNextDog(nextState, myOrders[i], nowAttack);//attack
 	  
-	  nextState.survive.emplace_back(survive);
+	  nextState.survive[depth] = survive;
 	  if (depth == 0){//use skill
 	    nextState.commandId = comId;
 	    if (skillId != -1){
