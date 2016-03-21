@@ -837,7 +837,7 @@ void possibleOrder(vector<Order> &result, const State& nowState, int depth, bool
 	  useShadowCloneCornerPoint(nowState, nowOrder, result);
 	  useLightning(nowState, nowOrder, result);
 	  useShadowClone(nowState, nowOrder, result);
-	  if (skills[7].cost <= 20 || nowState.skillPoint >= skills[7].cost * 1.5){
+	  if (nowState.skillPoint >= skills[7].cost * 1.2){
 	    for (int id = 0; id < 2; id++){
 	      useWhirlslash(nowState, id, nowOrder,result);
 	    }
@@ -1524,7 +1524,7 @@ void sortState(vector<State> &states){
 
 void nthState(vector<State> &states, int beamWidth){
   
-  if ((skills[7].cost <= 10 || myState.skillPoint >= skills[7].cost * 1.5)){//
+  if (myState.skillPoint >= skills[7].cost * 1.5){//
     nth_element(states.rbegin(), states.rend() - (beamWidth + 1), states.rend(), PriorityWhirlslash);    
     return ;
   }
