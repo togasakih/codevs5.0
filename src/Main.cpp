@@ -138,6 +138,7 @@ public:
     //togasaki
 
     getSoul = 0;
+    getSoulByDepth.clear();
     //    fail = false;
     commandId = -1;
     minDistSoulById.clear();
@@ -1578,8 +1579,8 @@ void think(int depthLimit, int beamWidth=800) {
   for (int depth = 0; depth < depthLimit; depth++){
 
     if (currentState[depth].size() > beamWidth){
-      sortState(currentState[depth]);
-      //nthState(currentState[depth], beamWidth);
+      //sortState(currentState[depth]);
+      nthState(currentState[depth], beamWidth);
       //      showGetSoul(currentState[depth]);
       currentState[depth].resize(beamWidth);
     }
