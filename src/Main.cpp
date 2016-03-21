@@ -115,12 +115,6 @@ public:
   vector<int> survive;
   int manhattanDistance;
 
-  int preNinjaX0;
-  int preNinjaY0;
-
-  int preNinjaX1;
-  int preNinjaY1;
-  int manhattanPreDistance;
   int killDog;
   vector<int> minSoulManhattanDistance;
   bool ninjaConfined;
@@ -159,11 +153,6 @@ public:
     manhattanDistance = 0;
 
 
-    preNinjaX0 = -1;
-    preNinjaY0 = -1;
-    preNinjaX1 = -1;
-    preNinjaY1 = -1;
-    manhattanPreDistance = 0;
     //
     killDog = 0;
     minSoulManhattanDistance.clear();
@@ -211,13 +200,6 @@ public:
     for (int i = 0; i < numOfNinjas; i++) {
       Character ninja = Character::input();
       st.ninjas.emplace_back(ninja);
-      if (i == 0){
-	st.preNinjaX0 = ninja.x;
-	st.preNinjaY0 = ninja.y;
-      }else{
-	st.preNinjaX1 = ninja.x;
-	st.preNinjaY1 = ninja.y;
-      }
       st.minDistSoulById.emplace_back(INF);
       st.minSoulManhattanDistance.emplace_back(INF);
       st.field[ninja.y][ninja.x].containsNinja = true;
@@ -332,13 +314,6 @@ public:
 	return true;
       }
       if (manhattanDistance > right.manhattanDistance){
-	return false;
-      }
-      //前との距離
-      if (manhattanPreDistance < right.manhattanPreDistance){
-	return true;
-      }
-      if (manhattanPreDistance > right.manhattanPreDistance){
 	return false;
       }
       if (missLightning > right.missLightning){
@@ -811,7 +786,6 @@ void useWhirlslash(const State& nowState, int id, const Order &order, vector<Ord
 void possibleOrder(vector<Order> &result, const State& nowState, int depth, bool useSpecialSkill, bool flagMyAttack=false){
   
   Order nowOrder;
-  //  cerr << depth << " " << useSpecialSkill << endl;
   if (!flagMyAttack){//myOrder
     for (int i = 0; i < commands.size(); i++){
       nowOrder.setOrder(i);
@@ -1005,15 +979,13 @@ void simulateNextDog(State &nowState, const Order &myOrder, const Attack& rivalA
 	targetNinjas.emplace_back(Point(nowState.ninjas[id].x, nowState.ninjas[id].y));
       }
     }
-    //    cerr << targetNinjas.size() << endl;
     for (int id = 0; id < targetNinjas.size(); id++){
       int sx = targetNinjas[id].x;
       int sy = targetNinjas[id].y;
-      //      queue<Search> open;
+
       open.init();
-      //initBoard
       initBoard(CLOSED, false);
-      //      vector< vector<bool> > CLOSED(nowState.H, vector<bool>(nowState.W, false));
+
       CLOSED[sy][sx] = true;
       open.push(Search(sx, sy, 0));
       while (!open.empty()) {
@@ -1046,7 +1018,6 @@ void simulateNextDog(State &nowState, const Order &myOrder, const Attack& rivalA
       int py = nowState.dogs[id].y;
       int nowDist = DIST[py][px];
       if (nowDist == 0)continue;
-      //      cerr << "nowDist = " << nowDist << endl;
       for (int k = 0; k < 4; k++){
 	int nx = px + dogDx[k];
 	int ny = py + dogDy[k];
@@ -1090,7 +1061,6 @@ int genNextState(State &nextState, int comId, bool shadow=false){
 	int nnx = nx + dx[comBit];
 	int nny = ny + dy[comBit];
 	if (nextState.field[nny][nnx].isWall() || !nextState.field[nny][nnx].isEmpty() || nextState.field[nny][nnx].containsDog || nextState.field[nny][nnx].containsNinja){
-	  //	  cerr << nx << " " << ny << " " << nnx << " " << nny << endl;
 	  continue;
 	}
 
@@ -1180,22 +1150,6 @@ void simulateDefence(State& nowState, int skillUseId,int skillId, Point targetPo
   
 }
 
-int calculateManhattanPreDistance(State& state){
-  
-  int px = state.ninjas[0].x;
-  int py = state.ninjas[0].y;
-  int ppx = state.preNinjaX0;
-  int ppy = state.preNinjaY0;
-
-  
-  int pqx = state.preNinjaX1;
-  int pqy = state.preNinjaY1;
-  int qx = state.ninjas[1].x;
-  int qy = state.ninjas[1].y;
-  state.manhattanPreDistance = abs(px - ppx) + abs(py - ppy) + abs(qx - pqx) + abs(qy - pqy);
-  return state.manhattanPreDistance;
-}
-
 int calculateManhattanDistance(State& state){
   
   int px = state.ninjas[0].x;
@@ -1234,7 +1188,6 @@ void calculateSurroundNumOfDog(State &state){
     }
     state.surroundNumOfDog = max(state.surroundNumOfDog, dog);
   }
-    
   return ;
 }
 
@@ -1242,7 +1195,7 @@ void calculateSurroundNumOfDog(State &state){
 void showState(const vector<State> &currentState){
   cerr << "-----------------------" << endl;
   for (int i = 0; i < currentState.size(); i++){
-    cout << currentState[i].getSoul << endl;
+    cerr << currentState[i].getSoul << endl;
   }
   cerr << "-----------------------" << endl;
 }
@@ -1407,12 +1360,9 @@ void attackPhase(const State& myState, const State& rivalState, vector<State> &r
       nextMyState.kill = kill;
       nextMyState.skillId = skillId;
       nextMyState.targetPoint = targetPoint;
-      //      cerr << skillId << " " << targetPoint.y << " " << targetPoint.x << endl;
-      //assert(kill != 1);
       if (skillId != -1){//use attack
 	nextMyState.attackMode = true;
 	nextMyState.skillPoint -= skills[skillId].cost;
-	//	cerr << "KILLLLLLL" << endl;
       }
 
       result.emplace_back(nextMyState);
@@ -1512,13 +1462,6 @@ bool PriorityWhirlslash(const State& left, const State& right){
     if (left.manhattanDistance > right.manhattanDistance){
       return false;
     }
-    //前との距離
-    if (left.manhattanPreDistance < right.manhattanPreDistance){
-      return true;
-    }
-    if (left.manhattanPreDistance > right.manhattanPreDistance){
-      return false;
-    }
     
     //ligthningmiss
     if (left.missLightning > right.missLightning){
@@ -1554,15 +1497,6 @@ void nthState(vector<State> &states, int beamWidth){
   return ;
 }
 
-/*
- * このAIについて
- * - 各忍者について、 thinkByNinja(id) を2回行います。
- * - thinkByNinja(id) は、一人の忍者の一歩の行動を決める関数です(詳しくは関数のコメントを参照)。
- *
- * - 忍術
- * -- 「超高速」のみを使用します。
- * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
- */
 void think(int depthLimit, int beamWidth=900) {
 
   if (remTime <= 30000){//panic mode
@@ -1578,7 +1512,6 @@ void think(int depthLimit, int beamWidth=900) {
   for (int depth = 0; depth < depthLimit; depth++){
 
     if (currentState[depth].size() > beamWidth){
-      //sortState(currentState[depth]);
       nthState(currentState[depth], beamWidth);
       currentState[depth].resize(beamWidth);
     }
@@ -1655,11 +1588,7 @@ void think(int depthLimit, int beamWidth=900) {
 	  int lowerBit = comBits - upperBit * pow5[2];
 	  State nextState = currentState[depth][k];
 	  Attack nowAttack = Attack(skillRivalId, targetRivalPoint);
-	  //	  cerr << skillId << " " << targetPoint.y << " " << targetPoint.x << endl;
-	  //assert(survive != 1);
-	  //ignore
-	  //simulateAttack(nextState, nowAttack);//defence
-	  //nextState.rivalSkillPoint -= skillRivalCost;
+	  
 	  simulateDefence(nextState, skillUseId, skillId, targetPoint);//defence
 	  genNextState(nextState, comId, skillId == 5);//survive
 	  simulateNextDog(nextState, myOrders[i], nowAttack);//attack
@@ -1677,7 +1606,6 @@ void think(int depthLimit, int beamWidth=900) {
 	  nextState.skillPoint -= skillCost;
 	  
 	  calculateMinDistToSoul(nextState);
-	  calculateManhattanPreDistance(nextState);
 	  checkConfined(nextState);
 	  calculateNearCorner(nextState);
 	  calculateSurroundNumOfDog(nextState);
@@ -1687,29 +1615,19 @@ void think(int depthLimit, int beamWidth=900) {
       }
     }
     
-    //    currentState[depth].clear();
-    if (cntChallenge == 1){
-      //      nthState(currentState[depth + 1], 1);
-      //      sort(currentState[depth + 1].rbegin(), currentState[depth + 1].rend());
-      //      cerr << maxState.survive.size() << " " << maxState.survive[maxState.survive.size() - 1] << endl;
-      //      cerr << "depth = " << depth << endl;
-      if (currentState[depth + 1].empty() || !flagSurvive){//use special skill
-	//      if (currentState[depth + 1].empty() || currentState[depth + 1][0].survive[depth] != 1){//use special skill
 
-	//	cerr << "PROBABLY DEATH!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
-	//	currentState[depth + 1].clear();
+    if (cntChallenge == 1){
+      if (currentState[depth + 1].empty() || !flagSurvive){//use special skill
 	depth -= 1;
 	continue;
       }
-      //cerr << "unko" << endl;
     }
     cntChallenge = 0;
   }
 
   for (int depth = depthLimit; depth >= 1; depth--){
     sortState(currentState[depth]);
-    //    sort(currentState[depth].rbegin(), currentState[depth].rend());
-    cerr << currentState[depth].size() << endl;
+    //    cerr << currentState[depth].size() << endl;
     for (int i = 0; i < currentState[depth].size(); i++){
       int comId = currentState[depth][i].commandId;
       int skillUseId = currentState[depth][i].skillUseId;
@@ -1723,10 +1641,9 @@ void think(int depthLimit, int beamWidth=900) {
       int p1y = currentState[depth][i].ninjas[0].y;
       int p2x = currentState[depth][i].ninjas[1].x;
       int p2y = currentState[depth][i].ninjas[1].y;
-      //      cerr << "survive = " << survive << endl;
 
-      cerr << "skillId = " << skillId << endl;
-      cerr << "comId = " << comId << " " << currentState[depth][i].survive[0] << " " << currentState[depth][i].kill << endl;
+      // cerr << "skillId = " << skillId << endl;
+      // cerr << "comId = " << comId << " " << currentState[depth][i].survive[0] << " " << currentState[depth][i].kill << endl;
 
 
       if (skillId != -1){//use skill
