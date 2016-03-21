@@ -99,6 +99,7 @@ public:
   vector<Point> souls;
   //  vector<int> skillCount;
   //togasaki
+  vector<int> getSoulByDepth;
   int getSoul;
   //  bool fail;
   int commandId;
@@ -267,6 +268,16 @@ public:
     }
     if (getSoul > right.getSoul){
       return false;
+    }
+    if (getSoul == right.getSoul){//equal
+      for (int i = 0; i < getSoulByDepth.size(); i++){
+	if (getSoulByDepth[i] < right.getSoulByDepth[i]){
+	  return true;
+	}
+	if (getSoulByDepth[i] > right.getSoulByDepth[i]){
+	  return false;
+	}
+      }
     }
 
     //忍者のマンハッタン距離
@@ -1072,7 +1083,7 @@ void simulateNextDog(State &nowState, const Order &myOrder, const Attack& rivalA
 
 
 //-1 killed 0 fail 1 success 
-int genNextState(State &nextState, int comId, bool shadow=false){
+int genNextState(State &nextState, int comId, int depth, bool shadow=false){
 
 
   const int comBits = commands[comId];
@@ -1105,6 +1116,7 @@ int genNextState(State &nextState, int comId, bool shadow=false){
       if (nextState.field[ny][nx].containsSoul){//find soul
 	nextState.skillPoint += 2;
 	nextState.getSoul += 1;
+	nextState.getSoulByDepth[depth] += 1;
 	nextState.field[ny][nx].containsSoul = false;
 	//	nextState.souls.erase( find(nextState.souls.begin(), nextState.souls.end(), Point(nx, ny)) );
       }
@@ -1257,7 +1269,12 @@ void showBoard(const vector<vector<Cell> >& board){
   return;
 }
 
+void showGetSoul(const vector<State> &nowState){
+  for (int i = 0; i < nowState.size(); i++){
+    cerr << "getsouls = " << nowState[i].getSoul << endl;
+  }
 
+}
 bool pruningAttack(const State& nowState, const Order& nowOrder, const Attack& nowAttack){
   if (nowAttack.skillId == -1){
     return false;
@@ -1354,7 +1371,7 @@ void attackPhase(const State& myState, const State& rivalState, vector<State> &r
       State nextRivalState = rivalState;
       simulateAttack(nextRivalState, myAttacks[i]);
       simulateDefence(nextRivalState, skillRivalUseId, skillRivalId, targetRivalPoint);
-      int tmp = genNextState(nextRivalState, comRivalId, skillRivalId == 5);
+      int tmp = genNextState(nextRivalState, comRivalId, 0, skillRivalId == 5);
       if (tmp == -1){//killed
 	// if (myAttacks[i].skillId != -1){//use skill
 
@@ -1442,6 +1459,19 @@ bool PriorityWhirlslash(const State& left, const State& right){
     return false;
   }
 
+  if (left.getSoul == right.getSoul){//equal
+    for (int i = 0; i < left.getSoulByDepth.size(); i++){
+      if (left.getSoulByDepth[i] < right.getSoulByDepth[i]){
+	return true;
+      }
+      if (left.getSoulByDepth[i] > right.getSoulByDepth[i]){
+	return false;
+      }
+    }
+  }
+
+
+  
   if (left.skillPoint >= skills[7].cost && right.skillPoint >= skills[7].cost){
     if (left.surroundNumOfDog < right.surroundNumOfDog){
       return true;
@@ -1505,7 +1535,6 @@ bool PriorityWhirlslash(const State& left, const State& right){
     if (left.missLightning < right.missLightning){
       return false;
     }
-    
   }
   return left.minDistSoulById[0] + left.minDistSoulById[1] > right.minDistSoulById[0] + right.minDistSoulById[1];
 }
@@ -1532,13 +1561,15 @@ void nthState(vector<State> &states, int beamWidth){
   return ;
 }
 
-void think(int depthLimit, int beamWidth=1000) {
+void think(int depthLimit, int beamWidth=800) {
 
   if (remTime <= 30000){//panic mode
     depthLimit = 2;
     beamWidth = 100;
   }
   myState.survive.resize(depthLimit);
+  myState.getSoulByDepth.resize(depthLimit);
+  
   vector<State> currentState[depthLimit + 1];
   attackPhase(myState, rivalState, currentState[0]);
 
@@ -1547,7 +1578,9 @@ void think(int depthLimit, int beamWidth=1000) {
   for (int depth = 0; depth < depthLimit; depth++){
 
     if (currentState[depth].size() > beamWidth){
-      nthState(currentState[depth], beamWidth);
+      sortState(currentState[depth]);
+      //nthState(currentState[depth], beamWidth);
+      //      showGetSoul(currentState[depth]);
       currentState[depth].resize(beamWidth);
     }
     cntChallenge++;
@@ -1581,7 +1614,7 @@ void think(int depthLimit, int beamWidth=1000) {
 	  
 	  simulateAttack(nextState, rivalAttacks[j]);
 	  simulateDefence(nextState, skillUseId, skillId, targetPoint);
-	  int tmp = genNextState(nextState, comId, skillId == 5);
+	  int tmp = genNextState(nextState, comId, depth, skillId == 5);
 
 	  if (tmp == -1){//killed
 	    if (rivalAttacks[j].skillId != -1){//use skill
@@ -1625,7 +1658,7 @@ void think(int depthLimit, int beamWidth=1000) {
 	  Attack nowAttack = Attack(skillRivalId, targetRivalPoint);
 	  
 	  simulateDefence(nextState, skillUseId, skillId, targetPoint);//defence
-	  genNextState(nextState, comId, skillId == 5);//survive
+	  genNextState(nextState, comId, depth, skillId == 5);//survive
 	  simulateNextDog(nextState, myOrders[i], nowAttack);//attack
 	  
 	  nextState.survive[depth] = survive;
@@ -1678,8 +1711,8 @@ void think(int depthLimit, int beamWidth=1000) {
       int p2y = currentState[depth][i].ninjas[1].y;
 
       // cerr << "skillId = " << skillId << endl;
-      // cerr << "comId = " << comId << " " << currentState[depth][i].survive[0] << " " << currentState[depth][i].kill << endl;
-
+      //cerr << "comId = " << comId << " " << currentState[depth][i].survive[0] << " " << currentState[depth][i].kill << endl;
+      //      cerr << currentState[depth][i].getSoul << endl;
 
       if (skillId != -1){//use skill
 	cout << 3 << endl;
