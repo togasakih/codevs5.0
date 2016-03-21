@@ -1478,7 +1478,7 @@ bool PriorityWhirlslash(const State& left, const State& right){
 ////////////////////////////////////////
 void sortState(vector<State> &states){
   
-  if ((skills[7].cost <= 10 || myState.skillPoint >= skills[7].cost * 1.5)){//
+  if (myState.skillPoint >= skills[7].cost * 1.5)){//
     sort(states.rbegin(), states.rend(), PriorityWhirlslash);    
     return ;
   }
@@ -1497,7 +1497,7 @@ void nthState(vector<State> &states, int beamWidth){
   return ;
 }
 
-void think(int depthLimit, int beamWidth=900) {
+void think(int depthLimit, int beamWidth=800) {
 
   if (remTime <= 30000){//panic mode
     depthLimit = 2;
