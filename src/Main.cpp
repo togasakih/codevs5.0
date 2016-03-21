@@ -131,6 +131,8 @@ public:
   bool attackMode;
   int cornerClosed;
   int surroundNumOfDog;
+  int missLightning;
+  
   State() {
     skillPoint = 0;
     field.clear();
@@ -173,6 +175,7 @@ public:
     attackMode = false;
     cornerClosed = INF;
     surroundNumOfDog = 0;
+    missLightning = 0;
   }
 
   static State input(int numOfSkills) {
@@ -355,6 +358,12 @@ public:
 	return true;
       }
       if (manhattanPreDistance > right.manhattanPreDistance){
+	return false;
+      }
+      if (missLightning > right.missLightning){
+	return true;
+      }
+      if (missLightning < right.missLightning){
 	return false;
       }
     }
@@ -1160,6 +1169,8 @@ void simulateDefence(State& nowState, int skillUseId,int skillId, Point targetPo
     if (nowState.field[tarY][tarX].isObject()){
       nowState.field[tarY][tarX].kind = '_';
       return ;
+    }else{
+      nowState.missLightning++;
     }
   }
   if (skillId == 5){//shadowclone
@@ -1527,6 +1538,15 @@ bool PriorityWhirlslash(const State& left, const State& right){
     if (left.manhattanPreDistance > right.manhattanPreDistance){
       return false;
     }
+    
+    //ligthningmiss
+    if (left.missLightning > right.missLightning){
+      return true;
+    }
+    if (left.missLightning < right.missLightning){
+      return false;
+    }
+    
   }
   return left.minDistSoulById[0] + left.minDistSoulById[1] > right.minDistSoulById[0] + right.minDistSoulById[1];
 }
