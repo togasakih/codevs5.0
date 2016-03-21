@@ -1062,7 +1062,7 @@ void simulateNextDog(State &nowState, const Order &myOrder, const Attack& rivalA
       int px = nowState.dogs[id].x;
       int py = nowState.dogs[id].y;
       int nowDist = DIST[py][px];
-      //    if (nowDist == 0)continue;
+      if (nowDist == 0)continue;
       //      cerr << "nowDist = " << nowDist << endl;
       for (int k = 0; k < 4; k++){
 	int nx = px + dogDx[k];
