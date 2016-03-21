@@ -107,7 +107,7 @@ public:
   int skillUseId;
   int skillId;
   Point targetPoint;
-  int skillNumOfUse;
+
   int skillRivaUselId;
   int skillRivalId;
   Point targetRivalPoint;
@@ -164,7 +164,6 @@ public:
     preNinjaX1 = -1;
     preNinjaY1 = -1;
     manhattanPreDistance = 0;
-    skillNumOfUse = 0;
     //
     killDog = 0;
     minSoulManhattanDistance.clear();
@@ -280,21 +279,6 @@ public:
       return false;
     }
 
-    //Update二回術を使って一個多く手に入れた魂は嬉しくない
-    
-    // if (getSoul - right.getSoul >= 1){
-    //   if (skillNumOfUse - right.skillNumOfUse > 1){
-    // 	return true;
-    //   }
-    //   if (skillNumOfUse -right.skillNumOfUse <= 1){
-    // 	return false;
-    //   }
-    // }
-    
-    // //二個以上は嬉しいよ
-    // if (getSoul - right.getSoul >= 2){
-    //   return false;
-    // }
 
     if (getSoul < right.getSoul){
       return true;
@@ -328,9 +312,6 @@ public:
       return false;
     }
 
-
-
-    
 
     if (minDistSoulById[0] + minDistSoulById[1] ==  right.minDistSoulById[0] + right.minDistSoulById[1]){
       if (minSoulManhattanDistance[0] + minSoulManhattanDistance[1] > right.minSoulManhattanDistance[0] + right.minSoulManhattanDistance[1]){
@@ -1692,9 +1673,7 @@ void think(int depthLimit, int beamWidth=900) {
 	      nextState.targetPoint = targetPoint;
 	    }
 	  }
-	  if (skillId != -1){//useSkill
-	    nextState.skillNumOfUse += 1;
-	  }
+
 	  nextState.skillPoint -= skillCost;
 	  
 	  calculateMinDistToSoul(nextState);
