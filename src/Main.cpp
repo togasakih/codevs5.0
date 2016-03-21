@@ -417,7 +417,40 @@ public:
     tail = 0;
   }
 };
+template<typename T>
+class myVector{
+public:
+  int tail;
+  T data[300];
+  myVector(){
+    tail = 0;
+  }
+  bool empty(){
+    if (tail == 0){
+      return true;
+    }
+    return false;
+  }
+  int size(){
+    return tail;
+  }
+  void push_back(const T &p){
+    data[tail++] = p;
+  }
+  void emplace_back(const T &p){
+    data[tail++] = p;
+  }
+  void sort(){
+    std::sort(data, data + tail);
+  }
+  void init(){
+    tail = 0;
+  }
+  T& operator[](int index){
+    return data[index];
 
+  }
+};
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int remTime;
@@ -431,6 +464,7 @@ vector<int> firstDist,secondDist;
 vector<Point> firstPoint,secondPoint;
 
 vector<vector<Cell> > FIELD;
+myVector<pair<int, int> > orderDog;
 myQueue open;
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1004,14 +1038,15 @@ void simulateNextDog(State &nowState, const Order &myOrder, const Attack& rivalA
 	}
       }
     }
-    vector<pair<int, int> > orderDog;
+    //    vector<pair<int, int> > orderDog;
+    orderDog.init();
     for (int i = 0; i < nowState.dogs.size(); i++){
       int px = nowState.dogs[i].x;
       int py = nowState.dogs[i].y;
       if (!nowState.field[py][px].containsDog)continue;
-      orderDog.emplace_back(make_pair(DIST[py][px], i));
+      orderDog.push_back(make_pair(DIST[py][px], i));
     }
-    sort(orderDog.begin(), orderDog.end());
+    orderDog.sort();
     for (int i = 0; i < orderDog.size(); i++){
       int id = orderDog[i].second;
       int px = nowState.dogs[id].x;
@@ -1497,7 +1532,7 @@ void nthState(vector<State> &states, int beamWidth){
   return ;
 }
 
-void think(int depthLimit, int beamWidth=800) {
+void think(int depthLimit, int beamWidth=1000) {
 
   if (remTime <= 30000){//panic mode
     depthLimit = 2;
