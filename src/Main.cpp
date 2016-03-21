@@ -282,19 +282,19 @@ public:
 
     //Update二回術を使って一個多く手に入れた魂は嬉しくない
     
-    if (getSoul - right.getSoul >= 1){
-      if (skillNumOfUse - right.skillNumOfUse > 1){
-	return true;
-      }
-      if (skillNumOfUse -right.skillNumOfUse <= 1){
-	return false;
-      }
-    }
+    // if (getSoul - right.getSoul >= 1){
+    //   if (skillNumOfUse - right.skillNumOfUse > 1){
+    // 	return true;
+    //   }
+    //   if (skillNumOfUse -right.skillNumOfUse <= 1){
+    // 	return false;
+    //   }
+    // }
     
-    //二個以上は嬉しいよ
-    if (getSoul - right.getSoul >= 2){
-      return false;
-    }
+    // //二個以上は嬉しいよ
+    // if (getSoul - right.getSoul >= 2){
+    //   return false;
+    // }
 
     if (getSoul < right.getSoul){
       return true;
@@ -1582,7 +1582,7 @@ void nthState(vector<State> &states, int beamWidth){
  * -- 「超高速」のみを使用します。
  * -- 「超高速」を使えるだけの忍力を所持している場合に自動的に使用して、thinkByNinja(id) を1回多く呼び出します。
  */
-void think(int depthLimit, int beamWidth=500) {
+void think(int depthLimit, int beamWidth=900) {
 
   if (remTime <= 30000){//panic mode
     depthLimit = 2;
@@ -1839,7 +1839,7 @@ int main() {
   initGlobal();
   int turn = 1;
   while (input()) {
-    think(4);
+    think(3);
     cout.flush();
 
   }
