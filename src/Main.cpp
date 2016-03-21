@@ -93,7 +93,6 @@ public:
 class State {
 public:
   int skillPoint;
-  int H, W;
   vector< vector<Cell> > field;
   vector<Character> ninjas;
   vector<Character> dogs;
@@ -134,7 +133,7 @@ public:
   int cornerClosed;
   int surroundNumOfDog;
   State() {
-    skillPoint = H = W = -1;
+    skillPoint = 0;
     field.clear();
     ninjas.clear();
     dogs.clear();
@@ -182,7 +181,8 @@ public:
     State st;
 
     cin >> st.skillPoint;
-    cin >> st.H >> st.W;
+    int H,W;
+    cin >> H >> W;
     //togasaki
     //init global
 
@@ -190,7 +190,7 @@ public:
     
     st.field.clear();
 
-    for (int i = 0; i < st.H; i++) {
+    for (int i = 0; i < HEIGHT; i++) {
       vector<Cell> line;
       string s;
       cin >> s;
@@ -492,8 +492,8 @@ void useShadowCloneCornerPoint(const State &nowState, const Order &order, vector
     return ;
   }
   Order next = order;
-  int H = nowState.H;
-  int W = nowState.W;
+  int H = HEIGHT;
+  int W = WIDTH;
   for (int id = 0; id < 2; id++){
     int px = nowState.ninjas[id].x;
     int py = nowState.ninjas[id].y;
@@ -510,7 +510,7 @@ void useShadowCloneCornerPoint(const State &nowState, const Order &order, vector
   NextSegment1:;
     //upper right
     for (int y = H - 2; y >= 1; y--){
-      for (int x = 1; x < nowState.W - 1; x++){
+      for (int x = 1; x < WIDTH - 1; x++){
 	if (nowState.field[y][x].isWall() || nowState.field[y][x].isObject())continue;
 	next.setSkill(5);
 	next.setTargetPoint(x, y);
@@ -521,7 +521,7 @@ void useShadowCloneCornerPoint(const State &nowState, const Order &order, vector
   NextSegment2:;
 
     //lower left
-    for (int y = 1; y < nowState.H - 1; y++){
+    for (int y = 1; y < HEIGHT - 1; y++){
       for (int x = W - 1; x >= 1; x--){
 	if (nowState.field[y][x].isWall() || nowState.field[y][x].isObject())continue;
 	next.setSkill(5);
@@ -532,8 +532,8 @@ void useShadowCloneCornerPoint(const State &nowState, const Order &order, vector
     }
   NextSegment3:;
     //lower right
-    for (int y = 1; y < nowState.H - 1; y++){
-      for (int x = 1; x < nowState.W - 1; x++){
+    for (int y = 1; y < HEIGHT - 1; y++){
+      for (int x = 1; x < WIDTH - 1; x++){
 	if (nowState.field[y][x].isWall() || nowState.field[y][x].isObject())continue;
 	next.setSkill(5);
 	next.setTargetPoint(x, y);
@@ -692,7 +692,7 @@ void attackFallRock(const State& myState, const State& rivalState, vector<Attack
 	int fallx = px + x;
 	int fally = py + y;
 	if (abs(x) + abs(y) > 3)continue;
-	if (fallx <= 0 || fallx >= myState.W - 1 || fally <= 0 || fally >= myState.H - 1){
+	if (fallx <= 0 || fallx >= WIDTH - 1 || fally <= 0 || fally >= HEIGHT - 1){
 	  continue;
 	}
 	if (!myState.field[fally][fallx].isEmpty() || myState.field[fally][fallx].containsDog || myState.field[fally][fallx].containsNinja || myState.field[fally][fallx].containsSoul){
@@ -719,7 +719,7 @@ void attackShadowClone(const State& myState, const State& rivalState, vector<Att
 	int nx = px + x;
 	int ny = py + y;
 	if (abs(x) + abs(y) >= 3)continue;
-	if (nx <= 0 || nx >= myState.W - 1 || ny <= 0 || ny >= myState.H - 1){
+	if (nx <= 0 || nx >= WIDTH - 1 || ny <= 0 || ny >= HEIGHT - 1){
 	  continue;
 	}
 	if (!myState.field[ny][nx].isEmpty()){
@@ -742,7 +742,7 @@ bool checkReachDeath(const State& myState, const State& rivalState){
 	if (abs(x) + abs(y) > 3)continue;
 	int nx = px + x;
 	int ny = py + y;
-	if (nx <= 0 || nx >= myState.W - 1 || ny <= 0 || ny >= myState.H - 1){
+	if (nx <= 0 || nx >= WIDTH - 1 || ny <= 0 || ny >= HEIGHT - 1){
 	  continue;
 	}
 	if (myState.field[ny][nx].containsDog){
