@@ -1117,6 +1117,8 @@ int genNextState(State &nextState, int comId, int depth, bool shadow=false){
       if (nextState.field[ny][nx].containsSoul){//find soul
 	nextState.skillPoint += 2;
 	nextState.getSoul += 1;
+	//	cerr << nextState.getSoulByDepth.size() << " " << depth << endl;
+	//	assert(nextState.getSoulByDepth.size() > depth);
 	nextState.getSoulByDepth[depth] += 1;
 	nextState.field[ny][nx].containsSoul = false;
 	//	nextState.souls.erase( find(nextState.souls.begin(), nextState.souls.end(), Point(nx, ny)) );
@@ -1562,14 +1564,16 @@ void nthState(vector<State> &states, int beamWidth){
   return ;
 }
 
-void think(int depthLimit, int beamWidth=800) {
+void think(int depthLimit, int beamWidth=700) {
 
   if (remTime <= 30000){//panic mode
     depthLimit = 2;
     beamWidth = 100;
   }
-  myState.survive.resize(depthLimit);
-  myState.getSoulByDepth.resize(depthLimit);
+  rivalState.survive.resize(depthLimit + 1);
+  rivalState.getSoulByDepth.resize(depthLimit + 1);
+  myState.survive.resize(depthLimit + 1);
+  myState.getSoulByDepth.resize(depthLimit + 1);
   
   vector<State> currentState[depthLimit + 1];
   attackPhase(myState, rivalState, currentState[0]);
@@ -1615,6 +1619,7 @@ void think(int depthLimit, int beamWidth=800) {
 	  
 	  simulateAttack(nextState, rivalAttacks[j]);
 	  simulateDefence(nextState, skillUseId, skillId, targetPoint);
+	  //	  cerr << nextState.getSoulByDepth.size() << endl;
 	  int tmp = genNextState(nextState, comId, depth, skillId == 5);
 
 	  if (tmp == -1){//killed
