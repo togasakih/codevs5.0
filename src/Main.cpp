@@ -1564,7 +1564,7 @@ void nthState(vector<State> &states, int beamWidth){
   return ;
 }
 
-void think(int depthLimit, int beamWidth=700) {
+void think(int depthLimit, int beamWidth=800) {
 
   if (remTime <= 30000){//panic mode
     depthLimit = 2;
