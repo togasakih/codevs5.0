@@ -496,55 +496,51 @@ void useShadowCloneCornerPoint(const State &nowState, const Order &order, vector
   Order next = order;
   int H = HEIGHT;
   int W = WIDTH;
-  for (int id = 0; id < 2; id++){
-    int px = nowState.ninjas[id].x;
-    int py = nowState.ninjas[id].y;
-    //upper left;
-    for (int y = H - 2; y >= 1; y--){
-      for (int x = W - 2; x >= 1; x--){
-	if (nowState.field[y][x].isWall() || nowState.field[y][x].isObject())continue;
-	next.setSkill(5);
-	next.setTargetPoint(x, y);
-	result.emplace_back(next);
-	goto NextSegment1;
-      }
+  //upper left;
+  for (int y = H - 2; y >= 1; y--){
+    for (int x = W - 2; x >= 1; x--){
+      if (nowState.field[y][x].isWall() || nowState.field[y][x].isObject())continue;
+      next.setSkill(5);
+      next.setTargetPoint(x, y);
+      result.emplace_back(next);
+      goto NextSegment1;
     }
-  NextSegment1:;
-    //upper right
-    for (int y = H - 2; y >= 1; y--){
-      for (int x = 1; x < WIDTH - 1; x++){
-	if (nowState.field[y][x].isWall() || nowState.field[y][x].isObject())continue;
-	next.setSkill(5);
-	next.setTargetPoint(x, y);
-	result.emplace_back(next);
-	goto NextSegment2;
-      }
-    }
-  NextSegment2:;
-
-    //lower left
-    for (int y = 1; y < HEIGHT - 1; y++){
-      for (int x = W - 1; x >= 1; x--){
-	if (nowState.field[y][x].isWall() || nowState.field[y][x].isObject())continue;
-	next.setSkill(5);
-	next.setTargetPoint(x, y);
-	result.emplace_back(next);
-	goto NextSegment3;
-      }
-    }
-  NextSegment3:;
-    //lower right
-    for (int y = 1; y < HEIGHT - 1; y++){
-      for (int x = 1; x < WIDTH - 1; x++){
-	if (nowState.field[y][x].isWall() || nowState.field[y][x].isObject())continue;
-	next.setSkill(5);
-	next.setTargetPoint(x, y);
-	result.emplace_back(next);
-	goto NextSegment4;
-      }
-    }
-  NextSegment4:;
   }
+ NextSegment1:;
+  //upper right
+  for (int y = H - 2; y >= 1; y--){
+    for (int x = 1; x < WIDTH - 1; x++){
+      if (nowState.field[y][x].isWall() || nowState.field[y][x].isObject())continue;
+      next.setSkill(5);
+      next.setTargetPoint(x, y);
+      result.emplace_back(next);
+      goto NextSegment2;
+    }
+  }
+ NextSegment2:;
+
+  //lower left
+  for (int y = 1; y < HEIGHT - 1; y++){
+    for (int x = W - 1; x >= 1; x--){
+      if (nowState.field[y][x].isWall() || nowState.field[y][x].isObject())continue;
+      next.setSkill(5);
+      next.setTargetPoint(x, y);
+      result.emplace_back(next);
+      goto NextSegment3;
+    }
+  }
+ NextSegment3:;
+  //lower right
+  for (int y = 1; y < HEIGHT - 1; y++){
+    for (int x = 1; x < WIDTH - 1; x++){
+      if (nowState.field[y][x].isWall() || nowState.field[y][x].isObject())continue;
+      next.setSkill(5);
+      next.setTargetPoint(x, y);
+      result.emplace_back(next);
+      goto NextSegment4;
+    }
+  }
+ NextSegment4:;
   return ;
 }
 void copyField(vector<vector<Cell> > &field, const vector<vector<Cell> > &copySource){
@@ -1564,7 +1560,7 @@ void nthState(vector<State> &states, int beamWidth){
   return ;
 }
 
-void think(int depthLimit, int beamWidth=800) {
+void think(int depthLimit, int beamWidth=500) {
 
   if (remTime <= 30000){//panic mode
     depthLimit = 2;
