@@ -1306,7 +1306,7 @@ void calculateNearCorner(State &nowState){
   return ;
 }
 
-
+bool flagRisky;
 void attackPhase(const State& myState, const State& rivalState, vector<State> &result){
   vector<Order> rivalOrders;
 
@@ -1351,26 +1351,24 @@ void attackPhase(const State& myState, const State& rivalState, vector<State> &r
 	    if (nextRivalState.field[y][x].containsDog){//death
 	      flagDeath = true;
 	      break;
-	      if (myAttacks[i].skillId != -1){//use skillId
-
-	      }else{//unused skill
-
-	      }
 	    }
 	  }
 	  if (!flagDeath){//Survive!!!!!!!!!!!!!!!!!!!
+	    kill = -1;
+	  }
+	}else{//unused survive!!!!!!!!!!!!!!!!!!!!!!!!
+	  if (skillRivalId == -1){//unused skill
 	    kill = -2;
 	    break;
+	  }else{
+	    kill = -1;
 	  }
-	}else{
-	  kill = -2;
-	  break;
 	}
       }
     }
     if (skillId == -1 || kill == 1){//Kill!!!!!!!!!!!!!!!
       State nextMyState = myState;
-
+      
       nextMyState.kill = kill;
       nextMyState.skillId = skillId;
       nextMyState.targetPoint = targetPoint;
@@ -1380,6 +1378,9 @@ void attackPhase(const State& myState, const State& rivalState, vector<State> &r
       }
 
       result.emplace_back(nextMyState);
+      if (skillId == -1 && kill != -2){//turn risky
+	flagRisky = true;
+      }
     }
   }
 
@@ -1399,8 +1400,9 @@ void nthState(vector<State> &states, int beamWidth){
   return ;
 }
 
-void think(int depthLimit, int beamWidth=200) {
-
+void think(int depthLimit, int beamWidth=150) {
+  
+  flagRisky = false;
   if (remTime <= 30000){//panic mode
     depthLimit = 2;
     beamWidth = 100;
@@ -1433,7 +1435,7 @@ void think(int depthLimit, int beamWidth=200) {
       possibleOrder(myOrders,currentState[depth][k], depth, cntChallenge >= 2);
       vector<Attack> rivalAttacks;
       rivalAttacks.emplace_back(Attack());//none
-      if (depth == 0){
+      if (!flagRisky && depth == 0){
 	possibleAttack(rivalAttacks, currentState[depth][k], rivalState);
       }
       
@@ -1652,7 +1654,7 @@ int main() {
   initGlobal();
   int turn = 1;
   while (input()) {
-    think(5);
+    think(4);
     cout.flush();
 
   }
