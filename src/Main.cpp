@@ -111,11 +111,11 @@ public:
   vector<Point> souls;
   //  vector<int> skillCount;
   //togasaki
-  vector<int> getSoulByDepth;
-  int getSoul;
+
+
   //  bool fail;
   int commandId;
-  vector<int> minDistSoulById;
+
   
   int skillUseId;
   int skillId;
@@ -125,21 +125,23 @@ public:
   int skillRivalId;
   Point targetRivalPoint;
   
-  vector<int> survive;
-  int manhattanDistance;
-
-  int killDog;
-  vector<int> minSoulManhattanDistance;
-  bool ninjaConfined;
-
-
   //attack phase
-  int kill;
   bool attackMode;
-  int cornerClosed;
-  int surroundNumOfDog;
-  int missLightning;
   
+  int score;
+  double rate;
+  int cornerClosed;
+  int missLightning;
+  int surroundNumOfDog;
+  int kill;
+  bool ninjaConfined;
+  vector<int> minSoulManhattanDistance;
+  vector<int> minDistSoulById;
+  int manhattanDistance;
+  vector<int> survive;
+  vector<int> getSoulByDepth;
+  int getSoul;
+  int killDog;
   State() {
     skillPoint = 0;
     field.clear();
@@ -178,6 +180,9 @@ public:
     cornerClosed = INF;
     surroundNumOfDog = 0;
     missLightning = 0;
+    
+    score = 0;
+    rate = 1.0;
   }
 
   static State input(int numOfSkills) {
@@ -247,107 +252,54 @@ public:
 
     return st;
   }
+  void calculateScore(int survive, int depth){
+  // double score;
+  // double rate;
+  // int cornerClosed;
+  // int missLightning;
+  // int surroundNumOfDog;
+  // int kill;
+  // bool ninjaConfined;
+  // vector<int> minSoulManhattanDistance;
+  // vector<int> minDistSoulById;
+  // int manhattanDistance;
+  // vector<int> survive;
+  // vector<int> getSoulByDepth;
+  // int getSoul;
+  // int killDog;
+    int tmpScore = 0;
 
+    if (survive != 1){
+      tmpScore -= 30000000;
+    }
+    if (depth == 0 && kill == 1){
+      tmpScore += 3000000;
+    }
+    tmpScore += getSoulByDepth[depth] * 300;
+    tmpScore += killDog * 200;
+    tmpScore += skillPoint * 40;
+
+    tmpScore -= (minDistSoulById[0] + minDistSoulById[1]) * 3;
+    tmpScore -= (minSoulManhattanDistance[0] + minSoulManhattanDistance[1]);
+    tmpScore -= missLightning;
+    if (manhattanDistance <= 10){
+      tmpScore -= 30;
+    }
+    if (cornerClosed <= 3){
+      tmpScore -= 20;
+    }
+    if (ninjaConfined){
+      tmpScore -= 20;
+    }
+    if (minDistSoulById[0] + minDistSoulById[1] >= INF){
+      tmpScore -= 20;
+    }
+    score += tmpScore * rate;
+    rate *= 0.9;
+  }
   bool operator < (const State &right) const {
     
-    for (int i = 0; i < survive.size(); i++){
-      if (survive[i] < right.survive[i]){
-    	return true;
-      }
-      if (survive[i] > right.survive[i]){
-    	return false;
-      }
-      //kill
-      if (kill < right.kill){
-	return true;
-      }
-      if (kill > right.kill){
-	return false;
-      }
-    }
-    
-    //閉じ込められてる
-    if (ninjaConfined && !right.ninjaConfined){
-      return true;
-    }
-    //閉じ込められてない
-    if (!ninjaConfined && right.ninjaConfined){
-      return false;
-    }
-
-
-    if (getSoul < right.getSoul){
-      return true;
-    }
-    if (getSoul > right.getSoul){
-      return false;
-    }
-    if (getSoul == right.getSoul){//equal
-      for (int i = 0; i < getSoulByDepth.size(); i++){
-	if (getSoulByDepth[i] < right.getSoulByDepth[i]){
-	  return true;
-	}
-	if (getSoulByDepth[i] > right.getSoulByDepth[i]){
-	  return false;
-	}
-      }
-    }
-
-    //忍者のマンハッタン距離
-    if (manhattanDistance <= 10 && right.manhattanDistance > 10){
-      return true;
-    }
-    if (manhattanDistance > 10 && right.manhattanDistance <= 10){
-      return false;
-    }
-    
-
-    //どん詰まり
-    if (minDistSoulById[0] + minDistSoulById[1] == 2 * INF && right.minDistSoulById[0] + right.minDistSoulById[1] != 2 * INF){
-      return true;
-    }
-    if (minDistSoulById[0] + minDistSoulById[1] != 2 * INF && right.minDistSoulById[0] + right.minDistSoulById[1] == 2 * INF){
-      return false;
-    }
-
-    if (skillPoint < right.skillPoint){
-      return true;
-    }
-
-    if (skillPoint > right.skillPoint){
-      return false;
-    }
-
-
-    if (minDistSoulById[0] + minDistSoulById[1] ==  right.minDistSoulById[0] + right.minDistSoulById[1]){
-      if (minSoulManhattanDistance[0] + minSoulManhattanDistance[1] > right.minSoulManhattanDistance[0] + right.minSoulManhattanDistance[1]){
-	return true;
-      }
-      if (minSoulManhattanDistance[0] + minSoulManhattanDistance[1]< right.minSoulManhattanDistance[0] + right.minSoulManhattanDistance[1]){
-	return false;
-      }
-      //cornerに近いかどうか
-      if (cornerClosed < right.cornerClosed){
-	return true;
-      }
-      if (cornerClosed > right.cornerClosed){
-	return false;
-      }
-      //忍者のマンハッタン距離
-      if (manhattanDistance < right.manhattanDistance){
-	return true;
-      }
-      if (manhattanDistance > right.manhattanDistance){
-	return false;
-      }
-      if (missLightning > right.missLightning){
-	return true;
-      }
-      if (missLightning < right.missLightning){
-	return false;
-      }
-    }
-    return minDistSoulById[0] + minDistSoulById[1] > right.minDistSoulById[0] + right.minDistSoulById[1];
+    return score < right.score;
   }
 };
 
@@ -829,10 +781,9 @@ void useWhirlslash(const State& nowState, int id, const Order &order, vector<Ord
       }
     }
   }
-  if (special || (skills[7].cost > 15 && dog >= 4) || (skills[7].cost >= 9 && skills[7].cost <= 15 && dog >= 3) || (skills[7].cost < 9 && dog >= 2)){
-    nextOrder.setSkill(id, 7);
-    result.emplace_back(nextOrder);
-  }
+
+  nextOrder.setSkill(id, 7);
+  result.emplace_back(nextOrder);
 
   return ;
 }
@@ -1434,140 +1385,16 @@ void attackPhase(const State& myState, const State& rivalState, vector<State> &r
 
   return ;
 }
-//比較関数
-////////////////////////////////////////
-bool PriorityWhirlslash(const State& left, const State& right){
-    
-  for (int i = 0; i < left.survive.size(); i++){
-    if (left.survive[i] < right.survive[i]){
-      return true;
-    }
-    if (left.survive[i] > right.survive[i]){
-      return false;
-    }
-    //kill
-    if (left.kill < right.kill){
-      return true;
-    }
-    if (left.kill > right.kill){
-      return false;
-    }
-  }
-    
-  //very low
-  if (left.killDog < right.killDog){
-    return true;
-  }
-  if (left.killDog > right.killDog){
-    return false;
-  }
-  
-  
-  if (left.getSoul < right.getSoul){
-    return true;
-  }
-  if (left.getSoul > right.getSoul){
-    return false;
-  }
-
-  if (left.getSoul == right.getSoul){//equal
-    for (int i = 0; i < left.getSoulByDepth.size(); i++){
-      if (left.getSoulByDepth[i] < right.getSoulByDepth[i]){
-	return true;
-      }
-      if (left.getSoulByDepth[i] > right.getSoulByDepth[i]){
-	return false;
-      }
-    }
-  }
-
-
-  
-  if (left.skillPoint >= skills[7].cost && right.skillPoint >= skills[7].cost){
-    if (left.surroundNumOfDog < right.surroundNumOfDog){
-      return true;
-    }
-    if (left.surroundNumOfDog > right.surroundNumOfDog){
-      return false;
-    }
-  }
-
-  
-  //忍者のマンハッタン距離
-  if (left.manhattanDistance <= 10 && right.manhattanDistance > 10){
-    return true;
-  }
-  if (left.manhattanDistance > 10 && right.manhattanDistance <= 10){
-    return false;
-  }
-    
-
-  //どん詰まり
-  if (left.minDistSoulById[0] + left.minDistSoulById[1] == 2 * INF && right.minDistSoulById[0] + right.minDistSoulById[1] != 2 * INF){
-    return true;
-  }
-  if (left.minDistSoulById[0] + left.minDistSoulById[1] != 2 * INF && right.minDistSoulById[0] + right.minDistSoulById[1] == 2 * INF){
-    return false;
-  }
-
-  if (left.skillPoint < right.skillPoint){
-    return true;
-  }
-
-  if (left.skillPoint > right.skillPoint){
-    return false;
-  }
-  if (left.minDistSoulById[0] + left.minDistSoulById[1] ==  right.minDistSoulById[0] + right.minDistSoulById[1]){
-    if (left.minSoulManhattanDistance[0] + left.minSoulManhattanDistance[1] > right.minSoulManhattanDistance[0] + right.minSoulManhattanDistance[1]){
-      return true;
-    }
-    if (left.minSoulManhattanDistance[0] + left.minSoulManhattanDistance[1]< right.minSoulManhattanDistance[0] + right.minSoulManhattanDistance[1]){
-      return false;
-    }
-    //cornerに近いかどうか
-    if (left.cornerClosed < right.cornerClosed){
-      return true;
-    }
-    if (left.cornerClosed > right.cornerClosed){
-      return false;
-    }
-    //忍者のマンハッタン距離
-    if (left.manhattanDistance < right.manhattanDistance){
-      return true;
-    }
-    if (left.manhattanDistance > right.manhattanDistance){
-      return false;
-    }
-    
-    //ligthningmiss
-    if (left.missLightning > right.missLightning){
-      return true;
-    }
-    if (left.missLightning < right.missLightning){
-      return false;
-    }
-  }
-  return left.minDistSoulById[0] + left.minDistSoulById[1] > right.minDistSoulById[0] + right.minDistSoulById[1];
-}
 
 ////////////////////////////////////////
 void sortState(vector<State> &states){
-  
-  if (myState.skillPoint >= skills[7].cost * 1.5){//
-    sort(states.rbegin(), states.rend(), PriorityWhirlslash);    
-    return ;
-  }
   
   sort(states.rbegin(), states.rend());//ordinary
   return ;
 }
 
 void nthState(vector<State> &states, int beamWidth){
-  
-  if (myState.skillPoint >= skills[7].cost * 1.5){//
-    nth_element(states.rbegin(), states.rend() - (beamWidth + 1), states.rend(), PriorityWhirlslash);    
-    return ;
-  }
+
   nth_element(states.rbegin(), states.rend() - (beamWidth + 1), states.rend());
   return ;
 }
@@ -1610,7 +1437,7 @@ void think(int depthLimit, int beamWidth=200) {
 	possibleAttack(rivalAttacks, currentState[depth][k], rivalState);
       }
       
-      set<tuple<vector<vector<Cell> >, int> > checksame;
+      set<tuple<vector<vector<Cell> >,int>> checksame;
       for (int i = 0; i < myOrders.size(); i++){
 	int survive = 1;
 	int comId = myOrders[i].comId;
@@ -1668,7 +1495,7 @@ void think(int depthLimit, int beamWidth=200) {
 	  if (survive == -2)break;
 	}
 	
-	if (survive != -2){
+	//	if (survive != -2){
 	  if (survive == 1)flagSurvive = true;
 	  int comBits = commands[comId];
 	  
@@ -1692,18 +1519,16 @@ void think(int depthLimit, int beamWidth=200) {
 	  }
 	  nextState.skillPoint -= skillCost;
 	  
-	  if (checksame.count(make_tuple(nextState.field, nextState.skillPoint)) > 0){
-	    continue;
-	  }
-	  checksame.insert(make_tuple(nextState.field, nextState.skillPoint));
 	  
 	  calculateMinDistToSoul(nextState);
 	  checkConfined(nextState);
 	  calculateNearCorner(nextState);
 	  calculateSurroundNumOfDog(nextState);
 	  int manhattanDistance = calculateManhattanDistance(nextState);
+	  nextState.calculateScore(survive, depth);
+	  if (checksame.count(make_tuple(nextState.field, nextState.score)) > 0)continue;
+	  checksame.insert(make_tuple(nextState.field, nextState.score));
 	  currentState[depth + 1].emplace_back(nextState);
-	}
       }
     }
     
