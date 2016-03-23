@@ -73,6 +73,18 @@ public:
   bool isNoCharacter() const {
     return !containsSoul & !containsNinja & !containsDog;
   }
+  bool operator < (const Cell &p) const {
+    if (kind == p.kind){
+      if (containsNinja == p.containsNinja){
+	if (containsSoul == p.containsSoul){
+	  return containsDog > p.containsDog;
+	}
+	return containsSoul > p.containsSoul;
+      }
+      return containsNinja > p.containsNinja;
+    }
+    return kind > p.kind;
+  }
 };
 
 
@@ -1560,7 +1572,7 @@ void nthState(vector<State> &states, int beamWidth){
   return ;
 }
 
-void think(int depthLimit, int beamWidth=500) {
+void think(int depthLimit, int beamWidth=200) {
 
   if (remTime <= 30000){//panic mode
     depthLimit = 2;
@@ -1576,6 +1588,7 @@ void think(int depthLimit, int beamWidth=500) {
 
   //depth 0
   int cntChallenge = 0;
+
   for (int depth = 0; depth < depthLimit; depth++){
 
     if (currentState[depth].size() > beamWidth){
@@ -1586,6 +1599,8 @@ void think(int depthLimit, int beamWidth=500) {
     }
     cntChallenge++;
     bool flagSurvive = false;
+
+   
     for (int k = 0; k < currentState[depth].size(); k++){
       vector<Order> myOrders;
       possibleOrder(myOrders,currentState[depth][k], depth, cntChallenge >= 2);
@@ -1594,7 +1609,8 @@ void think(int depthLimit, int beamWidth=500) {
       if (depth == 0){
 	possibleAttack(rivalAttacks, currentState[depth][k], rivalState);
       }
-
+      
+      set<tuple<vector<vector<Cell> >, int> > checksame;
       for (int i = 0; i < myOrders.size(); i++){
 	int survive = 1;
 	int comId = myOrders[i].comId;
@@ -1607,6 +1623,7 @@ void think(int depthLimit, int beamWidth=500) {
 	Point targetRivalPoint = Point(-1, -1);
 	int skillRivalId = -1;
 	int skillRivalCost = skillRivalId >= 0 ? skills[skillRivalId].cost : 0;
+
 	for (int j = 0; j < rivalAttacks.size(); j++){
 	  State nextState = currentState[depth][k];
 	  if (pruningAttack(nextState, myOrders[i], rivalAttacks[j])){
@@ -1650,6 +1667,7 @@ void think(int depthLimit, int beamWidth=500) {
 	  }
 	  if (survive == -2)break;
 	}
+	
 	if (survive != -2){
 	  if (survive == 1)flagSurvive = true;
 	  int comBits = commands[comId];
@@ -1662,7 +1680,7 @@ void think(int depthLimit, int beamWidth=500) {
 	  simulateDefence(nextState, skillUseId, skillId, targetPoint);//defence
 	  genNextState(nextState, comId, depth, skillId == 5);//survive
 	  simulateNextDog(nextState, myOrders[i], nowAttack);//attack
-	  
+
 	  nextState.survive[depth] = survive;
 	  if (depth == 0){//use skill
 	    nextState.commandId = comId;
@@ -1672,8 +1690,12 @@ void think(int depthLimit, int beamWidth=500) {
 	      nextState.targetPoint = targetPoint;
 	    }
 	  }
-
 	  nextState.skillPoint -= skillCost;
+	  
+	  if (checksame.count(make_tuple(nextState.field, nextState.skillPoint)) > 0){
+	    continue;
+	  }
+	  checksame.insert(make_tuple(nextState.field, nextState.skillPoint));
 	  
 	  calculateMinDistToSoul(nextState);
 	  checkConfined(nextState);
@@ -1805,7 +1827,7 @@ int main() {
   initGlobal();
   int turn = 1;
   while (input()) {
-    think(3);
+    think(5);
     cout.flush();
 
   }
