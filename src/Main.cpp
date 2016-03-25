@@ -1648,7 +1648,7 @@ int main() {
   std::ios::sync_with_stdio(false);
   std::cin.tie(0);
   // AIの名前を出力
-  cout << "TogaTogAI" << endl;
+  cout << "TogaTogAI_Update_For_kondankai" << endl;
   cout.flush();
   commands = createCommands();
   initGlobal();
