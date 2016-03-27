@@ -27,6 +27,33 @@ const int pow5[] = {1, 5, 25, 125, 625, 3125, 15625};
 const int HEIGHT = 17;
 const int WIDTH = 14;
 
+#ifdef _MSC_VER
+#include <Windows.h>
+double get_ms() { return (double)GetTickCount64() / 1000; }
+#else
+#include <sys/time.h>
+double get_ms() { struct timeval t; gettimeofday(&t, NULL); return (double)t.tv_sec * 1000 + (double)t.tv_usec / 1000; }
+#endif
+
+class Timer
+{
+private:
+  double start_time;
+  double elapsed;
+
+  #ifdef USE_RDTSC
+  double get_sec() { return get_absolute_sec(); }
+  #else
+  double get_sec() { return get_ms() / 1000; }
+  #endif
+
+public:
+  Timer() {}
+
+  void start() { start_time = get_sec(); }
+  double get_elapsed() { return elapsed = get_sec() - start_time; }
+};
+
 class Point {
 public:
   int x, y;
@@ -800,7 +827,7 @@ void possibleOrder(vector<Order> &result, const State& nowState, int depth, bool
       if (depth == 0 && nowState.attackMode == true){
        	continue;
       }
-      if (depth < 1 || useSpecialSkill){
+      if (depth < 2 || useSpecialSkill){
 	if (!useSpecialSkill){
 	  //2
 	  //5
@@ -1307,7 +1334,7 @@ void calculateNearCorner(State &nowState){
 }
 
 bool flagRisky;
-void attackPhase(const State& myState, const State& rivalState, vector<State> &result){
+void attackPhase(const State& myState, const State& rivalState, priority_queue<State> &result){
   vector<Order> rivalOrders;
 
   possibleOrder(rivalOrders, rivalState, 0, false, true);
@@ -1377,7 +1404,7 @@ void attackPhase(const State& myState, const State& rivalState, vector<State> &r
 	nextMyState.skillPoint -= skills[skillId].cost;
       }
 
-      result.emplace_back(nextMyState);
+      result.emplace(nextMyState);
       if (skillId == -1 && kill != -2){//turn risky
 	flagRisky = true;
       }
@@ -1412,98 +1439,101 @@ void think(int depthLimit, int beamWidth=150) {
   myState.survive.resize(depthLimit + 1);
   myState.getSoulByDepth.resize(depthLimit + 1);
   
-  vector<State> currentState[depthLimit + 1];
+  priority_queue<State> currentState[depthLimit + 1];
   attackPhase(myState, rivalState, currentState[0]);
 
   //depth 0
   int cntChallenge = 0;
+  Timer timer;
+  timer.start();
+  for (int iter = 0; iter < 100 && timer.get_elapsed() <= 4.0; iter++){
 
-  for (int depth = 0; depth < depthLimit; depth++){
-
-    if (currentState[depth].size() > beamWidth){
-      //sortState(currentState[depth]);
-      nthState(currentState[depth], beamWidth);
-      //      showGetSoul(currentState[depth]);
-      currentState[depth].resize(beamWidth);
-    }
-    cntChallenge++;
-    bool flagSurvive = false;
-
-   
-    for (int k = 0; k < currentState[depth].size(); k++){
-      vector<Order> myOrders;
-      possibleOrder(myOrders,currentState[depth][k], depth, cntChallenge >= 2);
-      vector<Attack> rivalAttacks;
-      rivalAttacks.emplace_back(Attack());//none
-      if (!flagRisky && depth == 0){
-	possibleAttack(rivalAttacks, currentState[depth][k], rivalState);
+    for (int depth = 0; depth < depthLimit; depth++){
+      cntChallenge++;
+      bool flagSurvive = false;
+      if (timer.get_elapsed() > 4.0){
+	goto END;
       }
+      for (int k = 0; k < 5 && !currentState[depth].empty(); k++){
+	if (timer.get_elapsed() > 4.0){
+	goto END;
+      }
+	State nowState = currentState[depth].top();
+	currentState[depth].pop();
+	vector<Order> myOrders;
+	possibleOrder(myOrders, nowState, depth, cntChallenge >= 2);
+	vector<Attack> rivalAttacks;
+	rivalAttacks.emplace_back(Attack());//none
+	if (!flagRisky && depth == 0){
+	  possibleAttack(rivalAttacks, nowState, rivalState);
+	}
       
-      set<tuple<vector<vector<Cell> >,int>> checksame;
-      for (int i = 0; i < myOrders.size(); i++){
-	int survive = 1;
-	int comId = myOrders[i].comId;
-	int skillUseId = myOrders[i].skillUseId;
-	int skillId = myOrders[i].skillId;
-	int skillCost = myOrders[i].skillCost;
-	Point targetPoint = myOrders[i].targetPoint;
+	set<vector<vector<Cell>>> checksame;
+	for (int i = 0; i < myOrders.size(); i++){
+	  int survive = 1;
+	  int comId = myOrders[i].comId;
+	  int skillUseId = myOrders[i].skillUseId;
+	  int skillId = myOrders[i].skillId;
+	  int skillCost = myOrders[i].skillCost;
+	  Point targetPoint = myOrders[i].targetPoint;
 
-	//rival
-	Point targetRivalPoint = Point(-1, -1);
-	int skillRivalId = -1;
-	int skillRivalCost = skillRivalId >= 0 ? skills[skillRivalId].cost : 0;
+	  //rival
+	  Point targetRivalPoint = Point(-1, -1);
+	  int skillRivalId = -1;
+	  int skillRivalCost = skillRivalId >= 0 ? skills[skillRivalId].cost : 0;
 
-	for (int j = 0; j < rivalAttacks.size(); j++){
-	  State nextState = currentState[depth][k];
-	  if (pruningAttack(nextState, myOrders[i], rivalAttacks[j])){
-	     continue;
-	  }
-	  
-	  simulateAttack(nextState, rivalAttacks[j]);
-	  simulateDefence(nextState, skillUseId, skillId, targetPoint);
-	  //	  cerr << nextState.getSoulByDepth.size() << endl;
-	  int tmp = genNextState(nextState, comId, depth, skillId == 5);
-
-	  if (tmp == -1){//killed
-	    if (rivalAttacks[j].skillId != -1){//use skill
-	      survive = -1;
-	      skillRivalId = rivalAttacks[j].skillId;
-	      targetRivalPoint = rivalAttacks[j].targetPoint;
-	    }else{//unused skill
-	      survive = -2;
-	      break;
+	  for (int j = 0; j < rivalAttacks.size(); j++){
+	    
+	    State nextState = nowState;
+	    if (pruningAttack(nextState, myOrders[i], rivalAttacks[j])){
+	      continue;
 	    }
-	  }
+	  
+	    simulateAttack(nextState, rivalAttacks[j]);
+	    simulateDefence(nextState, skillUseId, skillId, targetPoint);
+	    //	  cerr << nextState.getSoulByDepth.size() << endl;
+	    int tmp = genNextState(nextState, comId, depth, skillId == 5);
 
-	  if (tmp == 1){//survive
-	    if (skillId == 5 || rivalAttacks[j].skillId == 6){//use shadowClaone
-	      simulateNextDog(nextState, myOrders[i], rivalAttacks[j]);
-	      for (int id = 0; id < 2; id++){
-	    	int x = nextState.ninjas[id].x;
-	    	int y = nextState.ninjas[id].y;
-		if (nextState.field[y][x].containsDog){//death
-	    	  if (rivalAttacks[j].skillId != -1){//use skillId
-	    	    survive = -1;
-		    skillRivalId = rivalAttacks[j].skillId;
-		    targetRivalPoint = rivalAttacks[j].targetPoint;
-	    	  }else{//unused skill
-	    	    survive = -2;
-	    	    break;
-	    	  }
-	    	}
+	    if (tmp == -1){//killed
+	      if (rivalAttacks[j].skillId != -1){//use skill
+		survive = -1;
+		skillRivalId = rivalAttacks[j].skillId;
+		targetRivalPoint = rivalAttacks[j].targetPoint;
+	      }else{//unused skill
+		survive = -2;
+		break;
 	      }
 	    }
+
+	    if (tmp == 1){//survive
+	      if (skillId == 5 || rivalAttacks[j].skillId == 6){//use shadowClaone
+		simulateNextDog(nextState, myOrders[i], rivalAttacks[j]);
+		for (int id = 0; id < 2; id++){
+		  int x = nextState.ninjas[id].x;
+		  int y = nextState.ninjas[id].y;
+		  if (nextState.field[y][x].containsDog){//death
+		    if (rivalAttacks[j].skillId != -1){//use skillId
+		      survive = -1;
+		      skillRivalId = rivalAttacks[j].skillId;
+		      targetRivalPoint = rivalAttacks[j].targetPoint;
+		    }else{//unused skill
+		      survive = -2;
+		      break;
+		    }
+		  }
+		}
+	      }
+	    }
+	    if (survive == -2)break;
 	  }
-	  if (survive == -2)break;
-	}
 	
-	//	if (survive != -2){
+	  //	if (survive != -2){
 	  if (survive == 1)flagSurvive = true;
 	  int comBits = commands[comId];
 	  
 	  int upperBit = comBits / pow5[2];
 	  int lowerBit = comBits - upperBit * pow5[2];
-	  State nextState = currentState[depth][k];
+	  State nextState = nowState;
 	  Attack nowAttack = Attack(skillRivalId, targetRivalPoint);
 	  
 	  simulateDefence(nextState, skillUseId, skillId, targetPoint);//defence
@@ -1528,42 +1558,42 @@ void think(int depthLimit, int beamWidth=150) {
 	  calculateSurroundNumOfDog(nextState);
 	  int manhattanDistance = calculateManhattanDistance(nextState);
 	  nextState.calculateScore(survive, depth);
-	  if (checksame.count(make_tuple(nextState.field, nextState.score)) > 0)continue;
-	  checksame.insert(make_tuple(nextState.field, nextState.score));
-	  currentState[depth + 1].emplace_back(nextState);
+	  if (checksame.count(nextState.field) > 0)continue;
+	  checksame.insert(nextState.field);
+	  currentState[depth + 1].emplace(nextState);
+	}
       }
-    }
     
 
-    if (cntChallenge == 1){
-      if (currentState[depth + 1].empty() || !flagSurvive){//use special skill
-	depth -= 1;
-	continue;
+      if (cntChallenge == 1){
+	if (currentState[depth + 1].empty() || !flagSurvive){//use special skill
+	  depth -= 1;
+	  continue;
+	}
       }
+      cntChallenge = 0;
     }
-    cntChallenge = 0;
   }
-
+ END:;
+  
   for (int depth = depthLimit; depth >= 1; depth--){
-    sortState(currentState[depth]);
-    //    cerr << currentState[depth].size() << endl;
-    for (int i = 0; i < currentState[depth].size(); i++){
-      int comId = currentState[depth][i].commandId;
-      int skillUseId = currentState[depth][i].skillUseId;
-      int skillId = currentState[depth][i].skillId;
-      int tarX = currentState[depth][i].targetPoint.x;
-      int tarY = currentState[depth][i].targetPoint.y;
-      int survive = currentState[depth][i].survive[0];
+    for (int i = 0; !currentState[depth].empty(); i++){
+      State nowState = currentState[depth].top();
+      currentState[depth].pop();
+      
+      int comId = nowState.commandId;
+      int skillUseId = nowState.skillUseId;
+      int skillId = nowState.skillId;
+      int tarX = nowState.targetPoint.x;
+      int tarY = nowState.targetPoint.y;
+      int survive = nowState.survive[0];
 
       if (depth != 1 && survive != 1)continue;//not alive
-      int p1x = currentState[depth][i].ninjas[0].x;
-      int p1y = currentState[depth][i].ninjas[0].y;
-      int p2x = currentState[depth][i].ninjas[1].x;
-      int p2y = currentState[depth][i].ninjas[1].y;
+      int p1x = nowState.ninjas[0].x;
+      int p1y = nowState.ninjas[0].y;
+      int p2x = nowState.ninjas[1].x;
+      int p2y = nowState.ninjas[1].y;
 
-      // cerr << "skillId = " << skillId << endl;
-      //cerr << "comId = " << comId << " " << currentState[depth][i].survive[0] << " " << currentState[depth][i].kill << endl;
-      //      cerr << currentState[depth][i].getSoul << endl;
 
       if (skillId != -1){//use skill
 	cout << 3 << endl;
